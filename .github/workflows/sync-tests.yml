@@ -1,8 +1,8 @@
 on:
   push:
     paths:
-      - workflow-templates/.github/workflows/mediawiki-tests.yml-remove_this
-      - .github/workflows/sync-tests.yml-remove_this
+      - workflow-templates/.github/workflows/mediawiki-tests.yml
+      - .github/workflows/sync-tests.yml
 
 jobs:
   copy:
