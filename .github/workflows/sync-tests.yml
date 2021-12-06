@@ -38,7 +38,7 @@ jobs:
           dst_path: .github/workflows/mediawiki-tests.yml
           dst_owner: miraheze
           dst_repo_name: ${{ matrix.repository }}
-          dst_branch: add-ci
+          dst_branch: update-ci
           commit_message: |
             Update workflow
 
