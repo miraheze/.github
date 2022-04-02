@@ -1,7 +1,7 @@
 on:
   push:
     paths:
-      - workflow-templates/.github/workflows/mediawiki-tests.yml
+      - workflow-templates/action.yml
       - .github/workflows/sync-tests.yml
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
         uses: andstor/copycat-action@v3
         with:
           personal_token: ${{ secrets.PERSONAL_TOKEN }}
-          src_path: workflow-templates/.github/workflows/mediawiki-tests.yml
+          src_path: workflow-templates/action.yml
           src_branch: master
           dst_path: .github/workflows/mediawiki-tests.yml
           dst_owner: miraheze
