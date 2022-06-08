@@ -19,6 +19,7 @@ jobs:
           - MatomoAnalytics
           - IncidentReporting
           - RottenLinks
+          - ImportDump
           - CustomHeader
           - SpriteSheet
           - YouTube
