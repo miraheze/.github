@@ -166,7 +166,7 @@ jobs:
             fi
           fi
 
-      - name: Main Tests
+      - name: Setup for Tests
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
@@ -176,6 +176,11 @@ jobs:
           chmod 777 src cache cover
           sudo chown -R nobody:nogroup src cache
           sudo chown $(id -u):$(id -g) src cache
+          
+      - name: Composer install (docker)
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
           # Composer install
           docker run \
             -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
@@ -187,6 +192,10 @@ jobs:
             --skip-install \
             --skip all \
             $DEPENDENCIES
+      - name: Run phan tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
           # phan
           docker run \
             -e THING_SUBNAME=extensions/"${{ github.event.repository.name }}" \
@@ -195,6 +204,10 @@ jobs:
             --color
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
+      - name: Run phpunit tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
           # phpunit
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -208,6 +221,10 @@ jobs:
             $DEPENDENCIES
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
+      - name: Run selenium tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
           # selenium
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -221,6 +238,10 @@ jobs:
             $DEPENDENCIES
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
+      - name: Run qunit tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
           # qunit
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -234,6 +255,10 @@ jobs:
             $DEPENDENCIES
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
+      - name: Run npm-test
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
           # npm-test
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -247,6 +272,10 @@ jobs:
             $DEPENDENCIES
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
+      - name: Run composer-test
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
           # composer-test
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -270,30 +299,3 @@ jobs:
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
           docker save -o "$(pwd)/docker-images/${QUIBBLE_DOCKER_IMAGE}" \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
-
-  notify-irc:
-    needs: test
-    runs-on: ubuntu-latest
-    if: ${{ always() && github.repository_owner == 'miraheze' && ( github.ref == 'refs/heads/master' || github.event_name == 'pull_request' ) }}
-    steps:
-      - name: succeeded
-        uses: technote-space/workflow-conclusion-action@v3
-      - uses: rectalogic/notify-irc@v2
-        if: env.WORKFLOW_CONCLUSION == 'success'
-        with:
-          channel: "#miraheze-sre"
-          server: "irc.libera.chat"
-          nickname: miraheze-github
-          message: ${{ github.repository }} - ${{ github.actor }} the build passed.
-          sasl_password: ${{ secrets.IRC_MIRAHEZEBOTS }}
-
-      - name: failed
-        uses: technote-space/workflow-conclusion-action@v3
-      - uses: rectalogic/notify-irc@v2
-        if: env.WORKFLOW_CONCLUSION == 'failure'
-        with:
-          channel: "#miraheze-sre"
-          server: "irc.libera.chat"
-          nickname: miraheze-github
-          message: ${{ github.repository }} - ${{ github.actor }} the build has errored.
-          sasl_password: ${{ secrets.IRC_MIRAHEZEBOTS }}
