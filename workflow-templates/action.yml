@@ -26,10 +26,10 @@ jobs:
             experimental: true
             composer-test: false
 
-          # Latest MediaWiki master - PHP 8.1
+          # Latest MediaWiki master - PHP 8.2
           - mw: 'master'
-            php: 8.1
-            php-docker: 81
+            php: 8.2
+            php-docker: 82
             experimental: true
             composer-test: false
 
