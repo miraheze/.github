@@ -33,15 +33,13 @@ jobs:
       - name: Copy workflow
         uses: andstor/copycat-action@v3
         with:
-          personal_token: ${{ secrets.GITHUB_TOKEN }}
+          personal_token: ${{ secrets.PERSONAL_TOKEN }}
           src_path: workflow-templates/action.yml
           src_branch: master
           dst_path: .github/workflows/mediawiki-tests.yml
           dst_owner: miraheze
           dst_repo_name: ${{ matrix.repository }}
           dst_branch: master
-          username: github-actions
-          email: github-actions@users.noreply.github.com
           commit_message: |
             Update workflow
 
