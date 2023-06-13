@@ -1,5 +1,6 @@
 on:
   push:
+    branches: [ master ]
     paths:
       - workflow-templates/action.yml
       - .github/workflows/sync-tests.yml
