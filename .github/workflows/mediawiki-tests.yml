@@ -1,103 +1,37 @@
 name: Quibble and Phan
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  workflow_call:
+    inputs:
+      mw:
+        required: true
+        type: string
+      php:
+        required: true
+        type: number
+      php-docker:
+        required: true
+        type: number
+      experimental:
+        default: false
+        required: false
+        type: boolean
+      composer-test:
+        default: false
+        required: false
+        type: boolean
 
 jobs:
   test:
-    name: "${{ matrix.mw }} | PHP ${{ matrix.php }} (${{ matrix.stage }})"
-
-    strategy:
-      matrix:
-        include:
-          # Latest stable MediaWiki - PHP 7.4 (phan)
-          - mw: 'REL1_39'
-            php: 7.4
-            php-docker: 74
-            experimental: false
-            stage: phan
-
-          # Latest MediaWiki master - PHP 7.4 (phan)
-          - mw: 'master'
-            php: 7.4
-            php-docker: 74
-            experimental: true
-            stage: phan
-
-          # Latest stable MediaWiki - PHP 7.4 (phpunit)
-          - mw: 'REL1_39'
-            php: 7.4
-            php-docker: 74
-            experimental: false
-            stage: phpunit
-
-          # Latest MediaWiki master - PHP 7.4 (phpunit)
-          - mw: 'master'
-            php: 7.4
-            php-docker: 74
-            experimental: true
-            stage: phpunit
-
-          # Latest MediaWiki master - PHP 8.1 (phpunit)
-          - mw: 'master'
-            php: 8.1
-            php-docker: 81
-            experimental: true
-            stage: phpunit
-
-          # Latest stable MediaWiki - PHP 7.4 (selenium)
-          - mw: 'REL1_39'
-            php: 7.4
-            php-docker: 74
-            experimental: false
-            stage: selenium
-
-          # Latest MediaWiki master - PHP 7.4 (selenium)
-          - mw: 'master'
-            php: 7.4
-            php-docker: 74
-            experimental: true
-            stage: selenium
-
-          # Latest stable MediaWiki - PHP 7.4 (qunit)
-          - mw: 'REL1_39'
-            php: 7.4
-            php-docker: 74
-            experimental: false
-            stage: qunit
-
-          # Latest MediaWiki master - PHP 7.4 (qunit)
-          - mw: 'master'
-            php: 7.4
-            php-docker: 74
-            experimental: false
-            stage: qunit
-
-          # Latest stable MediaWiki - PHP 7.4 (npm-test)
-          - mw: 'REL1_39'
-            php: 7.4
-            php-docker: 74
-            experimental: false
-            stage: npm-test
-  
-          # Latest stable MediaWiki - PHP 7.4 (composer-test)
-          - mw: 'REL1_39'
-            php: 7.4
-            php-docker: 74
-            experimental: false
-            stage: composer-test
+    name: "${{ inputs.mw }} | PHP ${{ inputs.php }}"
 
     runs-on: ubuntu-latest
 
     env:
       DOCKER_REGISTRY: docker-registry.wikimedia.org
       DOCKER_ORG: releng
-      QUIBBLE_DOCKER_IMAGE: quibble-buster-php${{ matrix.php-docker }}
-      COVERAGE_DOCKER_IMAGE: quibble-buster-php${{ matrix.php-docker }}-coverage
-      PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ matrix.php-docker }}
+      QUIBBLE_DOCKER_IMAGE: quibble-buster-php${{ inputs.php-docker }}
+      PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
 
     steps:
       - name: Cancel Previous Runs
@@ -115,27 +49,15 @@ jobs:
       # $GITHUB_WORKSPACE/.github/workflows/globals.php   Add global configuration options for MediaWiki
       - name: Set up
         run: |
-          echo MEDIAWIKI_VERSION="${{ matrix.mw }}" >> $GITHUB_ENV
-
-          if [ "${{ matrix.stage }}" == 'phan' ]; then
-            export DOCKER_IMAGE="${PHAN_DOCKER_IMAGE}"
-          elif [ "${{ matrix.stage }}" == coverage ]; then
-            export DOCKER_IMAGE="${COVERAGE_DOCKER_IMAGE}"
-          else
-            export DOCKER_IMAGE="${QUIBBLE_DOCKER_IMAGE}"
-          fi
-          echo "DOCKER_IMAGE=${DOCKER_IMAGE}" >> $GITHUB_ENV
+          echo MEDIAWIKI_VERSION="${{ inputs.mw }}" >> $GITHUB_ENV
 
           # Get the latest docker tag (Ref: https://github.com/thcipriani/dockerregistry)
-          DOCKER_LATEST_TAG="$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${DOCKER_IMAGE}/tags/list" |
+          echo "PHAN_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}/tags/list" |
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
-            grep -v latest | sort -Vr | head -1)"
-          echo "DOCKER_LATEST_TAG=${DOCKER_LATEST_TAG}" >> $GITHUB_ENV
-          if [ "${{ matrix.stage }}" == 'phan' ] || [ "${{ matrix.stage }}" == 'coverage' ]; then
-            echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
-              python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
-              grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
-          fi
+            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
+          echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
+            python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
+            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
 
           # Resolve dependencies
           if [ -e .github/workflows/dependencies ]; then
@@ -145,25 +67,24 @@ jobs:
             echo "DEPENDENCIES=$(python3 rd.py)" >> $GITHUB_ENV
           fi
 
-      - name: Cache docker image
+      - name: Cache phan docker image
         uses: actions/cache@v3.3.0
         with:
-          path: /home/runner/docker-images/${{ env.DOCKER_IMAGE }}
-          key: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_LATEST_TAG }}
+          path: /home/runner/docker-images/${{ env.PHAN_DOCKER_IMAGE }}
+          key: ${{ env.PHAN_DOCKER_IMAGE }}:${{ env.PHAN_DOCKER_LATEST_TAG }}
 
-      - name: Load or pull docker image
+      - name: Load or pull phan docker image
         run: |
-          docker load -i /home/runner/docker-images/"${DOCKER_IMAGE}" || \
-            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}"
+          docker load -i /home/runner/docker-images/"${PHAN_DOCKER_IMAGE}" || \
+            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
 
       - name: Cache quibble docker image
-        if: ${{ matrix.stage == 'coverage' || matrix.stage == 'phan' }}
         uses: actions/cache@v3.3.0
         with:
           path: /home/runner/docker-images/${{ env.QUIBBLE_DOCKER_IMAGE }}
           key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:${{ env.QUIBBLE_DOCKER_LATEST_TAG }}
+
       - name: Load or pull quibble docker image
-        if: ${{ matrix.stage == 'coverage' || matrix.stage == 'phan' }}
         run: |
           docker load -i /home/runner/docker-images/"${QUIBBLE_DOCKER_IMAGE}" || \
             docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
@@ -208,14 +129,12 @@ jobs:
           key: ${{ runner.os }}-${{ env.MEDIAWIKI_VERSION }}-${{ hashFiles('**/*.lock') }}
 
       - name: Setup PHP Action
-        if: ${{ matrix.stage == 'phan' }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ inputs.php }}
           tools: composer:v2
 
       - name: Composer install
-        if: ${{ matrix.stage == 'phan' }}
         run: |
           if [ -e composer.json ]; then
             composer install --prefer-dist --no-progress --no-interaction
@@ -223,7 +142,7 @@ jobs:
 
       - name: Fix PHPCS violations
         continue-on-error: true
-        if: ${{ github.event_name == 'pull_request' && matrix.stage == 'composer-test' }}
+        if: ${{ github.event_name == 'pull_request' && inputs.composer-test }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -247,8 +166,8 @@ jobs:
             fi
           fi
 
-      - name: Main Test
-        continue-on-error: ${{ matrix.experimental }}
+      - name: Main Tests
+        continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
           # Move our extension
@@ -258,58 +177,99 @@ jobs:
           sudo chown -R nobody:nogroup src cache
           sudo chown $(id -u):$(id -g) src cache
           # Composer install
-          if [ "${{ matrix.stage }}" == 'phan' ] || [ "${{ matrix.stage }}" == 'coverage' ]; then
-            docker run \
-              -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-              -v "$(pwd)"/cache:/cache \
-              -v "$(pwd)"/src:/workspace/src \
-              "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
-              --skip-zuul \
-              --packages-source composer \
-              --skip-install \
-              --skip all \
-              $DEPENDENCIES
-          fi
-
-          if [ "${{ matrix.stage }}" == 'phan' ]; then
-            docker run \
-              -e THING_SUBNAME=extensions/"${{ github.event.repository.name }}" \
-              -v "$(pwd)"/src:/mediawiki \
-              "${DOCKER_REGISTRY}/${DOCKER_ORG}/${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}" \
-              --color
-          elif [ "${{ matrix.stage }}" == 'coverage' ] && [ -d src/extensions/"${{ github.event.repository.name }}"/tests/phpunit ]; then
-            docker run \
-              --entrypoint quibble-with-supervisord \
-              -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-              -v "$(pwd)"/cache:/cache \
-              -v "$(pwd)"/src:/workspace/src \
-              -v "$(pwd)"/cover:/workspace/cover \
-              "${DOCKER_REGISTRY}/${DOCKER_ORG}/${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}" \
-              --skip-zuul \
-              --skip-deps \
-              -c mwext-phpunit-coverage
-          elif [ "${{ matrix.stage }}" != 'coverage' ]; then
-            docker run \
-              --entrypoint quibble-with-supervisord \
-              -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-              -v "$(pwd)"/cache:/cache \
-              -v "$(pwd)"/src:/workspace/src \
-              "${DOCKER_REGISTRY}/${DOCKER_ORG}/${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}" \
-              --skip-zuul \
-              --packages-source composer \
-              --run "${{ matrix.stage }}" \
-              $DEPENDENCIES
-            fi
+          docker run \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --skip-install \
+            --skip all \
+            $DEPENDENCIES
+          # phan
+          docker run \
+            -e THING_SUBNAME=extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/src:/mediawiki \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}" \
+            --color
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # phpunit
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "phpunit" \
+            $DEPENDENCIES
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # selenium
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "selenium" \
+            $DEPENDENCIES
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # qunit
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "qunit" \
+            $DEPENDENCIES
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # npm-test
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "npm-test" \
+            $DEPENDENCIES
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # composer-test
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "composer-test" \
+            $DEPENDENCIES
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
 
       - name: Tear down
         run: |
           cd /home/runner
           sudo rm -rf src/extensions/"${{ github.event.repository.name }}"
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
           mkdir -p docker-images
-          docker save -o "$(pwd)/docker-images/${DOCKER_IMAGE}" \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}"
+          docker save -o "$(pwd)/docker-images/${PHAN_DOCKER_IMAGE}" \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
+          docker save -o "$(pwd)/docker-images/${QUIBBLE_DOCKER_IMAGE}" \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
 
   notify-irc:
     needs: test
