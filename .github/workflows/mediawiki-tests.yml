@@ -192,6 +192,7 @@ jobs:
             --skip-install \
             --skip all \
             $DEPENDENCIES
+
       - name: Run phan tests
         continue-on-error: ${{ inputs.experimental }}
         run: |
@@ -202,12 +203,13 @@ jobs:
             -v "$(pwd)"/src:/mediawiki \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}" \
             --color
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
+
       - name: Run phpunit tests
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
           # phpunit
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -219,12 +221,13 @@ jobs:
             --packages-source composer \
             --run "phpunit" \
             $DEPENDENCIES
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
+
       - name: Run selenium tests
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
           # selenium
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -236,12 +239,13 @@ jobs:
             --packages-source composer \
             --run "selenium" \
             $DEPENDENCIES
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
+
       - name: Run qunit tests
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
           # qunit
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -253,12 +257,13 @@ jobs:
             --packages-source composer \
             --run "qunit" \
             $DEPENDENCIES
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
+
       - name: Run npm-test
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
           # npm-test
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -270,12 +275,13 @@ jobs:
             --packages-source composer \
             --run "npm-test" \
             $DEPENDENCIES
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
+
       - name: Run composer-test
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
           # composer-test
           docker run \
             --entrypoint quibble-with-supervisord \
@@ -287,12 +293,12 @@ jobs:
             --packages-source composer \
             --run "composer-test" \
             $DEPENDENCIES
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
 
       - name: Tear down
         run: |
           cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
           sudo rm -rf src/extensions/"${{ github.event.repository.name }}"
           mkdir -p docker-images
           docker save -o "$(pwd)/docker-images/${PHAN_DOCKER_IMAGE}" \
