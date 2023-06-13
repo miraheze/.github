@@ -1,0 +1,41 @@
+name: Call reusable MediaWiki tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  call-mediawiki-tests-workflow:
+    uses: miraheze/.github/.github/worflows/mediawiki-tests.yml@master
+    strategy:
+      matrix:
+        include:
+          # Latest MediaWiki stable - PHP 7.4 
+          - mw: 'REL1_39'
+            php: 7.4
+            php-docker: 74
+            composer-test: true
+            experimental: false
+
+          # Latest MediaWiki master - PHP 7.4
+          - mw: 'master'
+            php: 7.4
+            php-docker: 74
+            experimental: true
+            composer-test: false
+
+          # Latest MediaWiki master - PHP 8.1
+          - mw: 'master'
+            php: 8.1
+            php-docker: 81
+            experimental: true
+            composer-test: false
+    with:
+      mw: ${{ matrix.mw }}
+      php: ${{ matrix.php }}
+      php-docker: ${{ matrix.php-docker }}
+      experimental: ${{ matrix.experimental }}
+      composer-test: ${{ matrix.composer-test }}
+    secrets: inherit
