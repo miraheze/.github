@@ -1,0 +1,307 @@
+name: Quibble and Phan
+
+on:
+  workflow_call:
+    inputs:
+      mw:
+        required: true
+        type: string
+      php:
+        required: true
+        type: number
+      php-docker:
+        required: true
+        type: number
+      experimental:
+        default: false
+        required: false
+        type: boolean
+      composer-test:
+        default: false
+        required: false
+        type: boolean
+
+jobs:
+  test:
+    name: "${{ inputs.mw }} | PHP ${{ inputs.php }}"
+
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_REGISTRY: docker-registry.wikimedia.org
+      DOCKER_ORG: releng
+      QUIBBLE_DOCKER_IMAGE: quibble-buster-php${{ inputs.php-docker }}
+      PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+
+      # /home/runner/cache/                               Cache
+      # /home/runner/src/                                 Mediawiki installation
+      # /home/runner/src/extensions/EXTENSION_NAME/       Clone of the extension repository
+      # /home/runner/docker-images/                       Docker images which exported with docker-save command
+      # $GITHUB_WORKSPACE/.github/workflows/dependencies  Necessary dependencies - YAML syntax
+      # $GITHUB_WORKSPACE/.github/workflows/globals.php   Add global configuration options for MediaWiki
+      - name: Set up
+        run: |
+          echo MEDIAWIKI_VERSION="${{ inputs.mw }}" >> $GITHUB_ENV
+
+          # Get the latest docker tag (Ref: https://github.com/thcipriani/dockerregistry)
+          echo "PHAN_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}/tags/list" |
+            python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
+            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
+          echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
+            python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
+            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
+
+          # Resolve dependencies
+          if [ -e .github/workflows/dependencies ]; then
+            cd .github/workflows
+            curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/parameter_functions.py -o pf.py
+            curl -sL https://raw.githubusercontent.com/miraheze/ci-scripts/master/mediawiki/resolve_dependencies.py -o rd.py
+            echo "DEPENDENCIES=$(python3 rd.py)" >> $GITHUB_ENV
+          fi
+
+      - name: Cache phan docker image
+        uses: actions/cache@v3.3.0
+        with:
+          path: /home/runner/docker-images/${{ env.PHAN_DOCKER_IMAGE }}
+          key: ${{ env.PHAN_DOCKER_IMAGE }}:${{ env.PHAN_DOCKER_LATEST_TAG }}
+
+      - name: Load or pull phan docker image
+        run: |
+          docker load -i /home/runner/docker-images/"${PHAN_DOCKER_IMAGE}" || \
+            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
+
+      - name: Cache quibble docker image
+        uses: actions/cache@v3.3.0
+        with:
+          path: /home/runner/docker-images/${{ env.QUIBBLE_DOCKER_IMAGE }}
+          key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:${{ env.QUIBBLE_DOCKER_LATEST_TAG }}
+
+      - name: Load or pull quibble docker image
+        run: |
+          docker load -i /home/runner/docker-images/"${QUIBBLE_DOCKER_IMAGE}" || \
+            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
+
+      - name: Download MediaWiki and extensions
+        run: |
+          cd /home/runner
+          if [ ! -d src ]; then
+            git clone -b "${MEDIAWIKI_VERSION}" --depth 1 https://gerrit.wikimedia.org/r/mediawiki/core src
+            git clone --recurse-submodules -b "${MEDIAWIKI_VERSION}" --depth 1 https://gerrit.wikimedia.org/r/mediawiki/skins/Vector src/skins/Vector
+            for dep in $DEPENDENCIES; do
+              dependency=$(echo $dep | cut -d'|' -f1)
+              repository=$(echo $dep | cut -sd'|' -f2)
+              branch=$(echo $dep | rev | cut -sd'|' -f1 | rev)
+
+              if [ $repository == $branch ]; then
+                repository=""
+              fi
+
+              git clone --recurse-submodules -b "${branch:-${MEDIAWIKI_VERSION}}" --depth 1 "${repository:-https://gerrit.wikimedia.org/r/${dependency}}" src/"$(echo $dependency | cut -d'/' -f2,3)"
+            done
+          fi
+
+          echo '?>' >> src/includes/DevelopmentSettings.php
+
+          if [ -d src/extensions/CreateWiki ] || [ "${{ github.event.repository.name }}" == 'CreateWiki' ]; then
+            curl -sL https://raw.githubusercontent.com/miraheze/ci-scripts/master/mediawiki/globals/setup-CreateWiki.php >> src/includes/DevelopmentSettings.php
+          fi
+
+          echo '<?php' >> src/includes/DevelopmentSettings.php
+
+          if [ -e "$GITHUB_WORKSPACE"/.github/workflows/globals.php ]; then
+            echo 'require_once __DIR__ . "/../extensions/${{ github.event.repository.name }}/.github/workflows/globals.php";' >> src/includes/DevelopmentSettings.php
+          fi
+
+          git -C src/ log -n 1 --format="%H"
+
+      - name: Cache dependencies (composer and npm)
+        uses: actions/cache@v3.3.0
+        with:
+          path: /home/runner/cache
+          key: ${{ runner.os }}-${{ env.MEDIAWIKI_VERSION }}-${{ hashFiles('**/*.lock') }}
+
+      - name: Setup PHP Action
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php }}
+          tools: composer:v2
+
+      - name: Composer install
+        run: |
+          if [ -e composer.json ]; then
+            composer install --prefer-dist --no-progress --no-interaction
+          fi
+
+      - name: Fix PHPCS violations
+        continue-on-error: true
+        if: ${{ github.event_name == 'pull_request' && inputs.composer-test }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -e composer.json ]; then
+            composer install --prefer-dist --no-progress --no-interaction
+            composer fix
+
+            rm composer.lock
+
+            if ! git diff --exit-code --quiet; then
+              git config --global user.name "github-actions"
+              git config --global user.email "github-actions@users.noreply.github.com"
+              git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+              git checkout -b ${GITHUB_HEAD_REF}
+              git add .
+              git commit -am "CI: lint code to MediaWiki standards" -m "Check commit and GitHub actions for more details"
+              git pull origin ${GITHUB_HEAD_REF} --rebase
+              git push --set-upstream origin ${GITHUB_HEAD_REF}
+            else
+              echo "No changes to commit"
+            fi
+          fi
+
+      - name: Setup for Tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # Move our extension
+          sudo cp -r "${GITHUB_WORKSPACE}" src/extensions/
+          mkdir -p cache cover
+          chmod 777 src cache cover
+          sudo chown -R nobody:nogroup src cache
+          sudo chown $(id -u):$(id -g) src cache
+          
+      - name: Composer install (docker)
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # Composer install
+          docker run \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --skip-install \
+            --skip all \
+            $DEPENDENCIES
+
+      - name: Run phan tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # phan
+          docker run \
+            -e THING_SUBNAME=extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/src:/mediawiki \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}" \
+            --color
+
+      - name: Run phpunit tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # phpunit
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "phpunit" \
+            $DEPENDENCIES
+
+      - name: Run selenium tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # selenium
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "selenium" \
+            $DEPENDENCIES
+
+      - name: Run qunit tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # qunit
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "qunit" \
+            $DEPENDENCIES
+
+      - name: Run npm-test
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # npm-test
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "npm-test" \
+            $DEPENDENCIES
+
+      - name: Run composer-test
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # composer-test
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "composer-test" \
+            $DEPENDENCIES
+
+      - name: Tear down
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          sudo rm -rf src/extensions/"${{ github.event.repository.name }}"
+          mkdir -p docker-images
+          docker save -o "$(pwd)/docker-images/${PHAN_DOCKER_IMAGE}" \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
+          docker save -o "$(pwd)/docker-images/${QUIBBLE_DOCKER_IMAGE}" \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
