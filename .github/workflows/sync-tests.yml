@@ -31,6 +31,21 @@ jobs:
       - run: |
           echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}" >> $GITHUB_ENV
           echo "GITHUB_SHA=${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "GITHUB_ACTOR=${GITHUB_ACTOR}" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract commit information
+        id: extract_commit
+        run: |
+          echo "::set-output name=short_message::$(git log -1 --pretty=%s)"
+          echo "::set-output name=long_message::$(git log -1 --pretty=%b)"
+
+      # Remove the checked-out repository to clean up
+      - name: Remove checked-out repository
+        run: rm -rf $GITHUB_WORKSPACE/.github
+
       - name: Copy workflow
         uses: andstor/copycat-action@v3
         with:
@@ -42,6 +57,10 @@ jobs:
           dst_repo_name: ${{ matrix.repository }}
           dst_branch: master
           commit_message: |
-            Update workflow
+            Update workflow: ${{ steps.extract_commit.outputs.short_message }}
+
+            ${{ steps.extract_commit.outputs.long_message }}
 
             from ${{ env.GITHUB_REPOSITORY }} (https://github.com/${{ env.GITHUB_REPOSITORY }}/commit/${{ env.GITHUB_SHA }})
+
+            ${{ env.GITHUB_ACTOR != 'The-Voidwalker' && format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
