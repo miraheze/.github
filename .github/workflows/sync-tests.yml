@@ -63,4 +63,4 @@ jobs:
 
             from ${{ env.GITHUB_REPOSITORY }} (https://github.com/${{ env.GITHUB_REPOSITORY }}/commit/${{ env.GITHUB_SHA }})
 
-            ${{ env.GITHUB_ACTOR != 'The-Voidwalker' && format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
+            ${{ env.GITHUB_ACTOR != 'Universal-Omega' && format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
