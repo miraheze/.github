@@ -16,6 +16,7 @@ jobs:
           - MirahezeMagic
           - WikiDiscover
           - RemovePII
+          - RequestSSL
           - GlobalNewFiles
           - MatomoAnalytics
           - IncidentReporting
