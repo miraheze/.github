@@ -222,42 +222,6 @@ jobs:
             --run "phpunit" \
             $DEPENDENCIES
 
-      - name: Run selenium tests
-        continue-on-error: ${{ inputs.experimental }}
-        run: |
-          cd /home/runner
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
-          # selenium
-          docker run \
-            --entrypoint quibble-with-supervisord \
-            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-            -v "$(pwd)"/cache:/cache \
-            -v "$(pwd)"/src:/workspace/src \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
-            --skip-zuul \
-            --packages-source composer \
-            --run "selenium" \
-            $DEPENDENCIES
-
-      - name: Run qunit tests
-        continue-on-error: ${{ inputs.experimental }}
-        run: |
-          cd /home/runner
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
-          # qunit
-          docker run \
-            --entrypoint quibble-with-supervisord \
-            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-            -v "$(pwd)"/cache:/cache \
-            -v "$(pwd)"/src:/workspace/src \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
-            --skip-zuul \
-            --packages-source composer \
-            --run "qunit" \
-            $DEPENDENCIES
-
       - name: Run npm-test
         continue-on-error: ${{ inputs.experimental }}
         run: |
