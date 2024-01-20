@@ -40,8 +40,8 @@ jobs:
       - name: Extract commit information
         id: extract_commit
         run: |
-          echo "::set-output name=short_message::$(git log -1 --pretty=%s)"
-          echo "::set-output name=long_message::$(git log -1 --pretty=%b)"
+          echo "short_message=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
+          echo "long_message=$(git log -1 --pretty=%b)" >> $GITHUB_OUTPUT
 
       # Remove the checked-out repository to clean up
       - name: Remove checked-out repository
