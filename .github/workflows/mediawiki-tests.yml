@@ -46,6 +46,7 @@ jobs:
       # /home/runner/src/extensions/EXTENSION_NAME/       Clone of the extension repository
       # /home/runner/docker-images/                       Docker images which exported with docker-save command
       # $GITHUB_WORKSPACE/.github/workflows/dependencies  Necessary dependencies - YAML syntax
+      # $GITHUB_WORKSPACE/.github/workflows/phan_dependencies  Necessary dependencies for phan - YAML syntax
       # $GITHUB_WORKSPACE/.github/workflows/globals.php   Add global configuration options for MediaWiki
       - name: Set up
         run: |
@@ -60,11 +61,16 @@ jobs:
             grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
 
           # Resolve dependencies
-          if [ -e .github/workflows/dependencies ]; then
+          if [ -e .github/workflows/dependencies ] || [ -e .github/workflows/phan_dependencies ]; then
             cd .github/workflows
             curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/parameter_functions.py -o pf.py
             curl -sL https://raw.githubusercontent.com/miraheze/ci-scripts/master/mediawiki/resolve_dependencies.py -o rd.py
-            echo "DEPENDENCIES=$(python3 rd.py)" >> $GITHUB_ENV
+            if [ -e .github/workflows/dependencies ]; then
+              echo "DEPENDENCIES=$(python3 rd.py dependencies)" >> $GITHUB_ENV
+            fi
+            if [ -e .github/workflows/phan_dependencies ]; then
+              echo "PHAN_DEPENDENCIES=$(python3 rd.py phan_dependencies)" >> $GITHUB_ENV
+            fi
           fi
 
       - name: Cache phan docker image
@@ -95,7 +101,7 @@ jobs:
           if [ ! -d src ]; then
             git clone -b "${MEDIAWIKI_VERSION}" --depth 1 https://gerrit.wikimedia.org/r/mediawiki/core src
             git clone --recurse-submodules -b "${MEDIAWIKI_VERSION}" --depth 1 https://gerrit.wikimedia.org/r/mediawiki/skins/Vector src/skins/Vector
-            for dep in $DEPENDENCIES; do
+            for dep in $DEPENDENCIES $PHAN_DEPENDENCIES; do
               dependency=$(echo $dep | cut -d'|' -f1)
               repository=$(echo $dep | cut -sd'|' -f2)
               branch=$(echo $dep | rev | cut -sd'|' -f1 | rev)
