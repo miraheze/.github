@@ -66,7 +66,7 @@ jobs:
             curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/parameter_functions.py -o pf.py
             curl -sL https://raw.githubusercontent.com/miraheze/ci-scripts/master/mediawiki/resolve_dependencies.py -o rd.py
             echo "DEPENDENCIES=$(python3 rd.py dependencies)" >> $GITHUB_ENV
-            if [ -e .github/workflows/phan_dependencies ]; then
+            if [ -e phan_dependencies ]; then
               echo "PHAN_DEPENDENCIES=$(python3 rd.py phan_dependencies --no-recurse)" >> $GITHUB_ENV
             fi
           fi
