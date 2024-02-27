@@ -10,22 +10,22 @@ jobs:
     strategy:
       matrix:
         repository:
-          - ManageWiki
           - CreateWiki
+          - CustomHeader
           - DataDump
+          - GlobalNewFiles
+          - ImportDump
+          - IncidentReporting
+          - ManageWiki
+          - MatomoAnalytics
           - MirahezeMagic
-          - WikiDiscover
+          - PDFEmbed
           - RemovePII
           - RequestSSL
-          - GlobalNewFiles
-          - MatomoAnalytics
-          - IncidentReporting
           - RottenLinks
-          - ImportDump
-          - CustomHeader
           - SpriteSheet
+          - WikiDiscover
           - YouTube
-          - PDFEmbed
 
     runs-on: ubuntu-latest
     steps:
