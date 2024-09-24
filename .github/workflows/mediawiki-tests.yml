@@ -203,6 +203,21 @@ jobs:
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          if [ -n "$PHAN_DEPENDENCIES" ]; then
+            for dep in $PHAN_DEPENDENCIES; do
+              dependency=$(echo $dep | cut -d'|' -f1)
+              repository=$(echo $dep | cut -sd'|' -f2)
+              branch=$(echo $dep | rev | cut -sd'|' -f1 | rev)
+
+              if [ $repository == $branch ]; then
+                repository=""
+              fi
+
+              if [ ! -d "src/$(echo $dependency | cut -d'/' -f2,3)" ]; then
+                git clone --recurse-submodules -b "${branch:-${MEDIAWIKI_VERSION}}" --depth 1 "${repository:-https://gerrit.wikimedia.org/r/${dependency}}" src/"$(echo $dependency | cut -d'/' -f2,3)"
+              fi
+            done
+          fi
           # phan
           docker run \
             -e THING_SUBNAME=extensions/"${{ github.event.repository.name }}" \
