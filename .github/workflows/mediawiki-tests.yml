@@ -219,7 +219,7 @@ jobs:
             for dep in $PHAN_DEPENDENCIES; do
               dependency=$(echo $dep | cut -d'|' -f1)
               if [ -d "src/$(echo $dependency | cut -d'/' -f2,3)" ]; then
-                rm -rf "src/$(echo $dependency | cut -d'/' -f2,3)"
+                sudo rm -rf "src/$(echo $dependency | cut -d'/' -f2,3)"
               fi
             done
           fi
