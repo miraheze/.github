@@ -32,7 +32,7 @@ jobs:
       DOCKER_ORG: releng
       QUIBBLE_DOCKER_IMAGE: quibble-buster-php${{ inputs.php-docker }}
       PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
-      ZUUL_DIR: ${{ github.workspace }}/.github/workflows/zuul
+      ZUUL_DIR: zuul
 
     steps:
       - name: Cancel Previous Runs
