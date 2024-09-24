@@ -32,6 +32,7 @@ jobs:
       DOCKER_ORG: releng
       QUIBBLE_DOCKER_IMAGE: quibble-buster-php${{ inputs.php-docker }}
       PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
+      ZUUL_DIR: .github/workflows/zuul
 
     steps:
       - name: Cancel Previous Runs
@@ -63,8 +64,10 @@ jobs:
           # Resolve dependencies
           if [ -e .github/workflows/dependencies ]; then
             cd .github/workflows
+            mkdir zuul
             curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/parameter_functions.py -o pf.py
             curl -sL https://raw.githubusercontent.com/miraheze/ci-scripts/master/mediawiki/resolve_dependencies.py -o rd.py
+            curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/dependencies.yaml -o zuul/dependencies.yaml
             echo "DEPENDENCIES=$(python3 rd.py dependencies)" >> $GITHUB_ENV
             if [ -e phan_dependencies ]; then
               echo "PHAN_DEPENDENCIES=$(python3 rd.py phan_dependencies --no-recurse)" >> $GITHUB_ENV
