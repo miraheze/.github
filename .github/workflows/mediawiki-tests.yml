@@ -61,7 +61,7 @@ jobs:
             grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
 
           # Resolve dependencies
-          if [ -e .github/workflows/dependencies ]; then
+          if [ -e .github/workflows/dependencies ] || [ -e .github/workflows/phan_dependencies ]; then
             sudo mkdir -p /src/zuul
             sudo chmod -R 0777 /src
             curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/dependencies.yaml -o /src/zuul/dependencies.yaml
@@ -70,7 +70,9 @@ jobs:
             cd .github/workflows
             curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/parameter_functions.py -o pf.py
             curl -sL https://raw.githubusercontent.com/miraheze/ci-scripts/master/mediawiki/resolve_dependencies.py -o rd.py
-            echo "DEPENDENCIES=$(python3 rd.py dependencies)" >> $GITHUB_ENV
+            if [ -e dependencies ]; then
+              echo "DEPENDENCIES=$(python3 rd.py dependencies)" >> $GITHUB_ENV
+            fi
             if [ -e phan_dependencies ]; then
               echo "PHAN_DEPENDENCIES=$(python3 rd.py phan_dependencies --no-recurse)" >> $GITHUB_ENV
             fi
@@ -182,7 +184,7 @@ jobs:
           # Move our extension
           sudo cp -r "${GITHUB_WORKSPACE}" src/extensions/
           mkdir -p cache cover
-          chmod 777 src cache cover
+          chmod 0777 src cache cover
           sudo chown -R nobody:nogroup src cache
           sudo chown $(id -u):$(id -g) src cache
           
@@ -217,6 +219,15 @@ jobs:
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          # Delete $PHAN_DEPENDENCIES if any exist
+          if [ -n "$PHAN_DEPENDENCIES" ]; then
+            for dep in $PHAN_DEPENDENCIES; do
+              dependency=$(echo $dep | cut -d'|' -f1)
+              if [ -d "src/$(echo $dependency | cut -d'/' -f2,3)" ]; then
+                sudo rm -rf "src/$(echo $dependency | cut -d'/' -f2,3)"
+              fi
+            done
+          fi
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
           # phpunit
