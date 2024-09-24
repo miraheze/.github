@@ -214,6 +214,15 @@ jobs:
         continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
+          # Delete $PHAN_DEPENDENCIES if any exist
+          if [ -n "$PHAN_DEPENDENCIES" ]; then
+            for dep in $PHAN_DEPENDENCIES; do
+              dependency=$(echo $dep | cut -d'|' -f1)
+              if [ -d "src/$(echo $dependency | cut -d'/' -f2,3)" ]; then
+                rm -rf "src/$(echo $dependency | cut -d'/' -f2,3)"
+              fi
+            done
+          fi
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
           # phpunit
