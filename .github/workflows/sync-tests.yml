@@ -24,7 +24,6 @@ jobs:
           - RemovePII
           - RequestSSL
           - RottenLinks
-          - SpriteSheet
           - WikiDiscover
           - YouTube
 
