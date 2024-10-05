@@ -11,7 +11,6 @@ jobs:
       matrix:
         repository:
           - CreateWiki
-          - CustomHeader
           - DataDump
           - GlobalNewFiles
           - ImportDump
