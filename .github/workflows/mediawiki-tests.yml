@@ -41,13 +41,13 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      # /home/runner/cache/                               Cache
-      # /home/runner/src/                                 Mediawiki installation
-      # /home/runner/src/extensions/EXTENSION_NAME/       Clone of the extension repository
-      # /home/runner/docker-images/                       Docker images which exported with docker-save command
-      # $GITHUB_WORKSPACE/.github/workflows/dependencies  Necessary dependencies - YAML syntax
+      # /home/runner/cache/                                    Cache
+      # /home/runner/src/                                      Mediawiki installation
+      # /home/runner/src/extensions/EXTENSION_NAME/            Clone of the extension repository
+      # /home/runner/docker-images/                            Docker images which exported with docker-save command
+      # $GITHUB_WORKSPACE/.github/workflows/dependencies       Necessary dependencies - YAML syntax
       # $GITHUB_WORKSPACE/.github/workflows/phan_dependencies  Necessary dependencies for phan - YAML syntax
-      # $GITHUB_WORKSPACE/.github/workflows/globals.php   Add global configuration options for MediaWiki
+      # $GITHUB_WORKSPACE/.github/workflows/globals.php        Add global configuration options for MediaWiki
       - name: Set up
         run: |
           echo MEDIAWIKI_VERSION="${{ inputs.mw }}" >> $GITHUB_ENV
