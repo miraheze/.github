@@ -62,10 +62,8 @@ jobs:
 
           # Resolve dependencies
           if [ -e .github/workflows/dependencies ] || [ -e .github/workflows/phan_dependencies ]; then
-            sudo mkdir -p /src/zuul
-            sudo chmod -R 0777 /src
-            curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/dependencies.yaml -o /src/zuul/dependencies.yaml
-            curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/phan_dependencies.yaml -o /src/zuul/phan_dependencies.yaml
+            curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/dependencies.yaml -o dependencies.yaml
+            curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/phan_dependencies.yaml -o phan_dependencies.yaml
 
             cd .github/workflows
             curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/parameter_functions.py -o pf.py
