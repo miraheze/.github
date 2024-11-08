@@ -15,7 +15,7 @@ jobs:
           - GlobalNewFiles
           - ImportDump
           - IncidentReporting
-          - LibreTranslate
+          - MachineTranslation
           - ManageWiki
           - MatomoAnalytics
           - MirahezeMagic
