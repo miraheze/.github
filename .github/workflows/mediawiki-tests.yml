@@ -51,8 +51,6 @@ jobs:
       # $GITHUB_WORKSPACE/.github/workflows/globals.php        Add global configuration options for MediaWiki
       - name: Set up
         run: |
-          echo MEDIAWIKI_VERSION="${{ inputs.mw }}" >> $GITHUB_ENV
-
           # Get the latest docker tag (Ref: https://github.com/thcipriani/dockerregistry)
           echo "PHAN_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}/tags/list" |
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
