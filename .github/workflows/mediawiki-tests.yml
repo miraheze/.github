@@ -32,6 +32,7 @@ jobs:
       DOCKER_ORG: releng
       QUIBBLE_DOCKER_IMAGE: quibble-bullseye-php${{ inputs.php-docker }}
       PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
+      MEDIAWIKI_VERSION: ${{ inputs.mw }}
 
     steps:
       - name: Cancel Previous Runs
