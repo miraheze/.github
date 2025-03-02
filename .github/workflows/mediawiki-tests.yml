@@ -20,6 +20,10 @@ on:
         default: false
         required: false
         type: boolean
+      coverage:
+        default: false
+        required: false
+        type: boolean
 
 jobs:
   test:
@@ -273,6 +277,12 @@ jobs:
             --packages-source composer \
             --run "composer-test" \
             $DEPENDENCIES
+
+      - name: Upload coverage to Codecov
+        if: ${{ github.event_name == 'pull_request' && inputs.coverage }}
+        uses: codecov/codecov-action@v5
+        with:
+          directory: /home/runner/cover
 
       - name: Tear down
         run: |
