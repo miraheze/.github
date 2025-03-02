@@ -316,7 +316,7 @@ jobs:
         with:
           directory: /home/runner/cover
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: miraheze/${{ github.event.repository.name }}
+          slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
       - name: Tear down
         run: |
