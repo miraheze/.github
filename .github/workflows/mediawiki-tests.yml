@@ -20,7 +20,7 @@ on:
         default: false
         required: false
         type: boolean
-      codecov:
+      coverage:
         default: false
         required: false
         type: boolean
@@ -36,8 +36,9 @@ jobs:
       DOCKER_ORG: releng
       QUIBBLE_DOCKER_IMAGE: quibble-bullseye-php${{ inputs.php-docker }}
       PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
+      COVERAGE_DOCKER_IMAGE: quibble-buster-php74-coverage
       MEDIAWIKI_VERSION: ${{ inputs.mw }}
-      CODECOV_REPOS: '["CreateWiki"]'
+      COVERAGE_REPOS: '["CreateWiki"]'
 
     steps:
       - name: Cancel Previous Runs
@@ -61,6 +62,9 @@ jobs:
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
             grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
           echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
+            python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
+            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
+          echo "COVERAGE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}/tags/list" |
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
             grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
 
@@ -100,6 +104,19 @@ jobs:
         run: |
           docker load -i /home/runner/docker-images/"${QUIBBLE_DOCKER_IMAGE}" || \
             docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
+
+      - name: Cache coverage docker image
+        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        uses: actions/cache@v4.2.0
+        with:
+          path: /home/runner/docker-images/${{ env.COVERAGE_DOCKER_IMAGE }}
+          key: ${{ env.COVERAGE_DOCKER_IMAGE }}:${{ env.COVERAGE_DOCKER_LATEST_TAG }}
+
+      - name: Load or pull coverage docker image
+        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        run: |
+          docker load -i /home/runner/docker-images/"${COVERAGE_DOCKER_IMAGE}" || \
+            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}"
 
       - name: Download MediaWiki and extensions
         run: |
@@ -279,8 +296,22 @@ jobs:
             --run "composer-test" \
             $DEPENDENCIES
 
+      - name: Run coverage
+        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        run: |
+            docker run \
+              --entrypoint quibble-with-supervisord \
+              -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+              -v "$(pwd)"/cache:/cache \
+              -v "$(pwd)"/src:/workspace/src \
+              -v "$(pwd)"/cover:/workspace/cover \
+              "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
+              --skip-zuul \
+              --skip-deps \
+              -c mwext-phpunit-coverage
+
       - name: Upload coverage to Codecov
-        if: ${{ github.event_name == 'pull_request' && inputs.codecov && contains(fromJson(env.CODECOV_REPOS), github.event.repository.name) }}
+        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
         uses: codecov/codecov-action@v5
         with:
           directory: /home/runner/cover
