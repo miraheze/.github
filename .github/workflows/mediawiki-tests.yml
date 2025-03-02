@@ -333,3 +333,5 @@ jobs:
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
           docker save -o "$(pwd)/docker-images/${QUIBBLE_DOCKER_IMAGE}" \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
+          docker save -o "$(pwd)/docker-images/${COVERAGE_DOCKER_IMAGE}" \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}"
