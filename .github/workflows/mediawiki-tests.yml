@@ -237,7 +237,6 @@ jobs:
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
             --skip-zuul \
             --skip-install \
-            --skip all \
             -c mwext-phpunit-coverage
 
       - name: Upload coverage to Codecov
