@@ -218,7 +218,11 @@ jobs:
             -v "$(pwd)"/src:/workspace/src \
             -v "$(pwd)"/cover:/workspace/cover \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
-            -c "apt update && apt install -y php8.1-cli && quibble-with-supervisord --skip-zuul --packages-source composer --skip-install --skip all -c mwext-phpunit-coverage"
+            -c "apt update && apt install -y lsb-release ca-certificates curl gnupg && \
+              echo 'deb http://packages.sury.org/php/ $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/sury-php.list && \
+              curl -fsSL https://packages.sury.org/php/apt.gpg | tee /etc/apt/trusted.gpg.d/sury-php.gpg > /dev/null && \
+              apt update && apt install -y php8.1-cli && \
+              quibble-with-supervisord --skip-zuul --packages-source composer --skip-install --skip all -c mwext-phpunit-coverage"
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
