@@ -37,6 +37,7 @@ jobs:
       QUIBBLE_DOCKER_IMAGE: quibble-bullseye-php${{ inputs.php-docker }}
       PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
       MEDIAWIKI_VERSION: ${{ inputs.mw }}
+      CODECOV_REPOS: '["CreateWiki"]'
 
     steps:
       - name: Cancel Previous Runs
@@ -279,7 +280,7 @@ jobs:
             $DEPENDENCIES
 
       - name: Upload coverage to Codecov
-        if: ${{ github.event_name == 'pull_request' && inputs.codecov && github.event.repository.name == 'CreateWiki' }}
+        if: ${{ github.event_name == 'pull_request' && inputs.codecov && contains(fromJson(env.CODECOV_REPOS), github.event.repository.name) }}
         uses: codecov/codecov-action@v5
         with:
           directory: /home/runner/cover
