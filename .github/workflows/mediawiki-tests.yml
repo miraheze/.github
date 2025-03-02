@@ -224,9 +224,9 @@ jobs:
               apt update && apt remove -y php7.4 php7.4-cli php7.4-fpm && \
               apt install -y php8.1-cli php8.1-fpm php8.1-dom php8.1-intl php8.1-mbstring php8.1-xml && \
               update-alternatives --set php /usr/bin/php8.1 && \
-              systemctl enable php8.1-fpm && systemctl restart php8.1-fpm && \
+              service php8.1-fpm start && \
               php -m && php -v && \
-              quibble-with-supervisord --skip-zuul --packages-source composer --skip all -c mwext-phpunit-coverage"
+              quibble-with-supervisord --skip-zuul --packages-source composer -c mwext-phpunit-coverage"
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
