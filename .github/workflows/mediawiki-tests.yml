@@ -36,7 +36,7 @@ jobs:
       DOCKER_ORG: releng
       QUIBBLE_DOCKER_IMAGE: quibble-bullseye-php${{ inputs.php-docker }}
       PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
-      COVERAGE_DOCKER_IMAGE: php81-compile
+      COVERAGE_DOCKER_IMAGE: quibble-bullseye-php74-coverage
       MEDIAWIKI_VERSION: ${{ inputs.mw }}
       COVERAGE_REPOS: '["CreateWiki"]'
 
@@ -229,7 +229,16 @@ jobs:
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
           docker run \
-            --entrypoint /run-coverage.sh
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            -v "$(pwd)"/cover:/workspace/cover \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --skip-install \
+            --skip all \
+            -c mwext-phpunit-coverage
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
