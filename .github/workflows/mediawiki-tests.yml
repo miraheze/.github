@@ -236,7 +236,9 @@ jobs:
             -v "$(pwd)"/cover:/workspace/cover \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
             --skip-zuul \
+            --packages-source composer \
             --skip-install \
+            --skip all \
             -c mwext-phpunit-coverage
 
       - name: Upload coverage to Codecov
