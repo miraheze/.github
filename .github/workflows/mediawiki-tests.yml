@@ -223,9 +223,11 @@ jobs:
             --packages-source composer \
             -c "/bin/bash -c 'curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/mwext-phpunit-coverage.sh -o mwext-phpunit-coverage && \
               curl -sL https://github.com/wikimedia/integration-config/raw/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-suite-edit.py -o phpunit-suite-edit && \
+              curl -sL https://github.com/wikimedia/integration-config/raw/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-junit-edit.py -o phpunit-junit-edit && \
               rm -rf /workspace/src/extensions/*/vendor/squizlabs/php_codesniffer && \
-              chmod +x mwext-phpunit-coverage phpunit-suite-edit && \
+              chmod +x mwext-phpunit-coverage phpunit-suite-edit phpunit-junit-edit && \
               sed -i \"s|phpunit-suite-edit|./phpunit-suite-edit|g\" mwext-phpunit-coverage && \
+              sed -i \"s|phpunit-junit-edit|./phpunit-junit-edit|g\" mwext-phpunit-coverage && \
               ./mwext-phpunit-coverage'"
 
       - name: Upload coverage to Codecov
