@@ -219,6 +219,7 @@ jobs:
             -v "$(pwd)"/cover:/workspace/cover \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
             -c "apt update && apt install -y lsb-release ca-certificates curl gnupg && \
+              echo 'mysql ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
               echo 'deb http://packages.sury.org/php/ bullseye main' | tee /etc/apt/sources.list.d/sury-php.list && \
               curl -fsSL https://packages.sury.org/php/apt.gpg | tee /etc/apt/trusted.gpg.d/sury-php.gpg > /dev/null && \
               apt update && apt remove -y php7.4 php7.4-cli php7.4-fpm && \
