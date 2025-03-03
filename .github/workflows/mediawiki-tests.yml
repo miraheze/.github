@@ -20,6 +20,10 @@ on:
         default: false
         required: false
         type: boolean
+      coverage:
+        default: false
+        required: false
+        type: boolean
 
 jobs:
   test:
@@ -33,6 +37,7 @@ jobs:
       QUIBBLE_DOCKER_IMAGE: quibble-bullseye-php${{ inputs.php-docker }}
       PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
       MEDIAWIKI_VERSION: ${{ inputs.mw }}
+      COVERAGE_REPOS: '["CreateWiki"]'
 
     steps:
       - name: Cancel Previous Runs
@@ -183,7 +188,7 @@ jobs:
           chmod 0777 src cache cover
           sudo chown -R nobody:nogroup src cache
           sudo chown $(id -u):$(id -g) src cache
-          
+
       - name: Composer install (docker)
         continue-on-error: ${{ inputs.experimental }}
         run: |
@@ -210,33 +215,6 @@ jobs:
             -v "$(pwd)"/src:/mediawiki \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}" \
             --color
-
-      - name: Run phpunit tests
-        continue-on-error: ${{ inputs.experimental }}
-        run: |
-          cd /home/runner
-          # Delete $PHAN_DEPENDENCIES if any exist
-          if [ -n "$PHAN_DEPENDENCIES" ]; then
-            for dep in $PHAN_DEPENDENCIES; do
-              dependency=$(echo $dep | cut -d'|' -f1)
-              if [ -d "src/$(echo $dependency | cut -d'/' -f2,3)" ]; then
-                sudo rm -rf "src/$(echo $dependency | cut -d'/' -f2,3)"
-              fi
-            done
-          fi
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
-          # phpunit
-          docker run \
-            --entrypoint quibble-with-supervisord \
-            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-            -v "$(pwd)"/cache:/cache \
-            -v "$(pwd)"/src:/workspace/src \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
-            --skip-zuul \
-            --packages-source composer \
-            --run "phpunit" \
-            $DEPENDENCIES
 
       - name: Run npm-test
         continue-on-error: ${{ inputs.experimental }}
@@ -272,6 +250,68 @@ jobs:
             --skip-zuul \
             --packages-source composer \
             --run "composer-test" \
+            $DEPENDENCIES
+
+      - name: Run coverage
+        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        continue-on-error: true
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # coverage
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            -v "$(pwd)"/cover:/workspace/cover \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            -c "/bin/bash -c 'curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/mwext-phpunit-coverage.sh -o mwext-phpunit-coverage && \
+              curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-suite-edit.py -o phpunit-suite-edit && \
+              curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-junit-edit.py -o phpunit-junit-edit && \
+              rm -rf /workspace/src/extensions/*/vendor/squizlabs/php_codesniffer /workspace/src/extensions/*/vendor/composer/pcre && \
+              chmod +x mwext-phpunit-coverage phpunit-suite-edit phpunit-junit-edit && \
+              sed -i \"s|phpunit-suite-edit|./phpunit-suite-edit|g\" mwext-phpunit-coverage && \
+              sed -i \"s|phpunit-junit-edit|./phpunit-junit-edit|g\" mwext-phpunit-coverage && \
+              ./mwext-phpunit-coverage'"
+
+      - name: Upload coverage to Codecov
+        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        continue-on-error: true
+        uses: codecov/codecov-action@v5
+        with:
+          directory: /home/runner/cover
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+
+      - name: Run phpunit tests
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          # Delete $PHAN_DEPENDENCIES if any exist
+          if [ -n "$PHAN_DEPENDENCIES" ]; then
+            for dep in $PHAN_DEPENDENCIES; do
+              dependency=$(echo $dep | cut -d'|' -f1)
+              if [ -d "src/$(echo $dependency | cut -d'/' -f2,3)" ]; then
+                sudo rm -rf "src/$(echo $dependency | cut -d'/' -f2,3)"
+              fi
+            done
+          fi
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # phpunit
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            --run "phpunit" \
             $DEPENDENCIES
 
       - name: Tear down
