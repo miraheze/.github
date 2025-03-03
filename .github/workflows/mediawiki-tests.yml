@@ -290,9 +290,9 @@ jobs:
                         ln -sf /usr/sbin/php-fpm8.1 /usr/sbin/php-fpm && \
                         service php8.1-fpm start && \
                         service memcached start && \
-                        mkdir -p /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql && \
-                        chown -R mysql:mysql /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql && \
-                        chmod -R 777 /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql && \
+                        mkdir -p /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql /workspace/log && \
+                        chown -R mysql:mysql /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql /workspace/log && \
+                        chmod -R 0777 /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql /workspace/log && \
                         echo '[mysqld]' > /etc/mysql/my.cnf && \
                         echo 'bind-address = 127.0.0.1' >> /etc/mysql/my.cnf && \
                         echo 'skip-networking = 0' >> /etc/mysql/my.cnf && \
