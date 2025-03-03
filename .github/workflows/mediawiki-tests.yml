@@ -206,7 +206,7 @@ jobs:
             --skip-zuul \
             --packages-source composer \
             -c "/bin/bash -c 'curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/mwext-phpunit-coverage.sh -o mwext-phpunit-coverage && \
-            -c "/bin/bash -c 'curl -sL https://github.com/wikimedia/integration-config/raw/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/phpunit-suite-edit.py -o phpunit-suite-edit && \
+              curl -sL https://github.com/wikimedia/integration-config/raw/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/phpunit-suite-edit.py -o phpunit-suite-edit && \
               chmod +x mwext-phpunit-coverage phpunit-suite-edit && \
               mwext-phpunit-coverage'"
 
