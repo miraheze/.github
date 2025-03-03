@@ -199,6 +199,7 @@ jobs:
           docker run \
             --entrypoint /bin/bash \
             -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -e MW_INSTALL_PATH=/home/runner/src \
             -v "$(pwd)"/cache:/cache \
             -v "$(pwd)"/src:/workspace/src \
             -v "$(pwd)"/cover:/workspace/cover \
