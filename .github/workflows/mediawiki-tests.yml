@@ -205,41 +205,6 @@ jobs:
             --skip all \
             $DEPENDENCIES
 
-      - name: Run coverage
-        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
-        continue-on-error: true
-        run: |
-          cd /home/runner
-          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
-          rm "$(pwd)"/src/LocalSettings.php || true
-          # coverage
-          docker run \
-            --entrypoint quibble-with-supervisord \
-            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-            -v "$(pwd)"/cache:/cache \
-            -v "$(pwd)"/src:/workspace/src \
-            -v "$(pwd)"/cover:/workspace/cover \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
-            --skip-zuul \
-            --packages-source composer \
-            -c "/bin/bash -c 'curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/mwext-phpunit-coverage.sh -o mwext-phpunit-coverage && \
-              curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-suite-edit.py -o phpunit-suite-edit && \
-              curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-junit-edit.py -o phpunit-junit-edit && \
-              rm -rf /workspace/src/extensions/*/vendor/squizlabs/php_codesniffer /workspace/src/extensions/*/vendor/composer/pcre && \
-              chmod +x mwext-phpunit-coverage phpunit-suite-edit phpunit-junit-edit && \
-              sed -i \"s|phpunit-suite-edit|./phpunit-suite-edit|g\" mwext-phpunit-coverage && \
-              sed -i \"s|phpunit-junit-edit|./phpunit-junit-edit|g\" mwext-phpunit-coverage && \
-              ./mwext-phpunit-coverage'"
-
-      - name: Upload coverage to Codecov
-        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
-        continue-on-error: true
-        uses: codecov/codecov-action@v5
-        with:
-          directory: /home/runner/cover
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
-
       - name: Run phan tests
         continue-on-error: ${{ inputs.experimental }}
         run: |
@@ -286,6 +251,41 @@ jobs:
             --packages-source composer \
             --run "composer-test" \
             $DEPENDENCIES
+
+      - name: Run coverage
+        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        continue-on-error: true
+        run: |
+          cd /home/runner
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # coverage
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            -v "$(pwd)"/cover:/workspace/cover \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            -c "/bin/bash -c 'curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/mwext-phpunit-coverage.sh -o mwext-phpunit-coverage && \
+              curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-suite-edit.py -o phpunit-suite-edit && \
+              curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-bullseye-php74-coverage/phpunit-junit-edit.py -o phpunit-junit-edit && \
+              rm -rf /workspace/src/extensions/*/vendor/squizlabs/php_codesniffer /workspace/src/extensions/*/vendor/composer/pcre && \
+              chmod +x mwext-phpunit-coverage phpunit-suite-edit phpunit-junit-edit && \
+              sed -i \"s|phpunit-suite-edit|./phpunit-suite-edit|g\" mwext-phpunit-coverage && \
+              sed -i \"s|phpunit-junit-edit|./phpunit-junit-edit|g\" mwext-phpunit-coverage && \
+              ./mwext-phpunit-coverage'"
+
+      - name: Upload coverage to Codecov
+        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        continue-on-error: true
+        uses: codecov/codecov-action@v5
+        with:
+          directory: /home/runner/cover
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
       - name: Run phpunit tests
         continue-on-error: ${{ inputs.experimental }}
