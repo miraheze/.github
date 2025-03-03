@@ -207,7 +207,7 @@ jobs:
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
             --skip-zuul \
             --packages-source composer \
-            -c "/usr/bin/bash -e mwext-phpunit-coverage"
+            -c "/bin/bash -e mwext-phpunit-coverage"
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
