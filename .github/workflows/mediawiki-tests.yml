@@ -206,6 +206,34 @@ jobs:
           sudo chown -R nobody:nogroup src cache
           sudo chown $(id -u):$(id -g) src cache
 
+      - name: Run coverage
+        continue-on-error: ${{ inputs.experimental }}
+        run: |
+          cd /home/runner
+          curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/mwext-phpunit-coverage.sh -o mwext-phpunit-coverage
+          chmod +x mwext-phpunit-coverage
+          # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
+          rm "$(pwd)"/src/LocalSettings.php || true
+          # phpunit
+          docker run \
+            --entrypoint quibble-with-supervisord \
+            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+            -v "$(pwd)"/cache:/cache \
+            -v "$(pwd)"/src:/workspace/src \
+            -v "$(pwd)"/cover:/workspace/cover \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
+            --skip-zuul \
+            --packages-source composer \
+            -c /bin/bash mwext-phpunit-coverage
+
+      - name: Upload coverage to Codecov
+        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        uses: codecov/codecov-action@v5
+        with:
+          directory: /home/runner/cover
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+
       - name: Composer install (docker)
         continue-on-error: ${{ inputs.experimental }}
         run: |
@@ -268,49 +296,6 @@ jobs:
             --packages-source composer \
             --run "composer-test" \
             $DEPENDENCIES
-
-      - name: Run coverage
-        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
-        run: |
-            cd /home/runner
-            docker run \
-                  --user root \
-                  --entrypoint /bin/bash \
-                  -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-                  -v "$(pwd)"/cache:/cache \
-                  -v "$(pwd)"/src:/workspace/src \
-                  -v "$(pwd)"/cover:/workspace/cover \
-                  -v "$(pwd)"/log:/workspace/log \
-                  "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
-                  -c "apt update && apt install -y lsb-release ca-certificates curl gnupg && \
-                        echo 'deb http://packages.sury.org/php/ bullseye main' | tee /etc/apt/sources.list.d/sury-php.list && \
-                        curl -fsSL https://packages.sury.org/php/apt.gpg | tee /etc/apt/trusted.gpg.d/sury-php.gpg > /dev/null && \
-                        apt update && apt remove -y php7.4 php7.4-cli php7.4-fpm && \
-                        apt install -y php8.1-cli php8.1-curl php8.1-dom php8.1-intl php8.1-mbstring php8.1-xml php8.1-mysql php8.1-pdo php8.1-pdo-mysql php8.1-pcov php8.1-memcached && \
-                        update-alternatives --set php /usr/bin/php8.1 && \
-                        mkdir -p /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql /workspace/log && \
-                        chown -R mysql:mysql /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql /workspace/log && \
-                        chmod -R 0777 /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql /workspace/log && \
-                        echo '[mysqld]' > /etc/mysql/my.cnf && \
-                        echo 'bind-address = 127.0.0.1' >> /etc/mysql/my.cnf && \
-                        echo 'skip-networking = 0' >> /etc/mysql/my.cnf && \
-                        echo 'socket=/var/run/mysqld/mysqld.sock' >> /etc/mysql/my.cnf && \
-                        echo 'log-error=/workspace/log/mysql-error.log' >> /etc/mysql/my.cnf && \
-                        echo 'general_log_file=/workspace/log/mysql.log' >> /etc/mysql/my.cnf && \
-                        echo 'general_log = 1' >> /etc/mysql/my.cnf && \
-                        echo 'pcov.enabled=1' >> /etc/php/8.1/cli/php.ini && \
-                        echo 'pcov.directory=/workspace/src/extensions/CreateWiki' >> /etc/php/8.1/cli/php.ini && \
-                        echo 'pcov.exclude=@(tests|vendor)@' >> /etc/php/8.1/cli/php.ini && \
-                        php -m && php -v && \
-                        quibble-with-supervisord --skip-zuul --packages-source composer -c mwext-phpunit-coverage"
-
-      - name: Upload coverage to Codecov
-        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
-        uses: codecov/codecov-action@v5
-        with:
-          directory: /home/runner/cover
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
       - name: Run phpunit tests
         continue-on-error: ${{ inputs.experimental }}
