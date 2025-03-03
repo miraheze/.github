@@ -238,7 +238,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
-
       - name: Run phan tests
         continue-on-error: ${{ inputs.experimental }}
         run: |
