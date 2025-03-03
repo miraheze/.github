@@ -206,7 +206,8 @@ jobs:
             $DEPENDENCIES
 
       - name: Run coverage
-        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        continue-on-error: true
         run: |
           cd /home/runner
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
@@ -231,7 +232,8 @@ jobs:
               ./mwext-phpunit-coverage'"
 
       - name: Upload coverage to Codecov
-        if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
+        continue-on-error: true
         uses: codecov/codecov-action@v5
         with:
           directory: /home/runner/cover
