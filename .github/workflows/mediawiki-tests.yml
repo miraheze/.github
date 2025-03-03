@@ -300,10 +300,8 @@ jobs:
                         echo 'pcov.enabled=1' >> /etc/php/8.1/cli/php.ini && \
                         echo 'pcov.directory=/workspace/src/extensions/CreateWiki' >> /etc/php/8.1/cli/php.ini && \
                         echo 'pcov.exclude=@(tests|vendor)@' >> /etc/php/8.1/cli/php.ini && \
-                        service mysql start && \
-                        sleep 5 && \
                         php -m && php -v && \
-                        php -d extension=pcov.so -d pcov.enabled=1 -d pcov.directory=/workspace/src/extensions/CreateWiki -d 'pcov.exclude=@(tests|vendor)@' /workspace/src/tests/phpunit/phpunit.php --testsuite extensions --coverage-clover /workspace/log/clover.xml --coverage-html /workspace/cover --log-junit /workspace/log/junit.xml /workspace/src/extensions/CreateWiki"
+                        quibble-with-supervisord --skip-zuul --packages-source composer -c mwext-phpunit-coverage"
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
