@@ -272,24 +272,38 @@ jobs:
       - name: Run coverage
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
         run: |
-          cd /home/runner
-          docker run \
-            --user root \
-            --entrypoint /bin/bash \
-            -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-            -v "$(pwd)"/cache:/cache \
-            -v "$(pwd)"/src:/workspace/src \
-            -v "$(pwd)"/cover:/workspace/cover \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
-            -c "apt update && apt install -y lsb-release ca-certificates curl gnupg && \
-              echo 'deb http://packages.sury.org/php/ bullseye main' | tee /etc/apt/sources.list.d/sury-php.list && \
-              curl -fsSL https://packages.sury.org/php/apt.gpg | tee /etc/apt/trusted.gpg.d/sury-php.gpg > /dev/null && \
-              apt update && apt remove -y php7.4 php7.4-cli php7.4-fpm && \
-              apt install -y php8.1-cli php8.1-fpm php8.1-curl php8.1-dom php8.1-intl php8.1-mbstring php8.1-xml php8.1-mysql php8.1-pdo php8.1-pdo-mysql php8.1-pcov php8.1-memcached mariadb-server memcached && \
-              update-alternatives --set php /usr/bin/php8.1 && \
-              service php8.1-fpm start && \
-              php -m && php -v && \
-              quibble-with-supervisord --skip-zuul --packages-source composer --skip-install --skip all -c mwext-phpunit-coverage"
+            cd /home/runner
+            docker run \
+                  --user root \
+                  --entrypoint /bin/bash \
+                  -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
+                  -v "$(pwd)"/cache:/cache \
+                  -v "$(pwd)"/src:/workspace/src \
+                  -v "$(pwd)"/cover:/workspace/cover \
+                  "${DOCKER_REGISTRY}/${DOCKER_ORG}/${COVERAGE_DOCKER_IMAGE}:${COVERAGE_DOCKER_LATEST_TAG}" \
+                  -c "apt update && apt install -y lsb-release ca-certificates curl gnupg && \
+                        echo 'deb http://packages.sury.org/php/ bullseye main' | tee /etc/apt/sources.list.d/sury-php.list && \
+                        curl -fsSL https://packages.sury.org/php/apt.gpg | tee /etc/apt/trusted.gpg.d/sury-php.gpg > /dev/null && \
+                        apt update && apt remove -y php7.4 php7.4-cli php7.4-fpm && \
+                        apt install -y php8.1-cli php8.1-fpm php8.1-curl php8.1-dom php8.1-intl php8.1-mbstring php8.1-xml php8.1-mysql php8.1-pdo php8.1-pdo-mysql php8.1-pcov php8.1-memcached mariadb-server memcached && \
+                        update-alternatives --set php /usr/bin/php8.1 && \
+                        ln -sf /usr/sbin/php-fpm8.1 /usr/sbin/php-fpm && \
+                        service php8.1-fpm start && \
+                        service memcached start && \
+                        mkdir -p /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql && \
+                        chown -R mysql:mysql /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql && \
+                        chmod -R 777 /var/lib/mysql /var/run/mysqld /tmp/quibble-mysql && \
+                        echo '[mysqld]' > /etc/mysql/my.cnf && \
+                        echo 'bind-address = 127.0.0.1' >> /etc/mysql/my.cnf && \
+                        echo 'skip-networking = 0' >> /etc/mysql/my.cnf && \
+                        echo 'socket=/var/run/mysqld/mysqld.sock' >> /etc/mysql/my.cnf && \
+                        echo 'pcov.enabled=1' >> /etc/php/8.1/cli/php.ini && \
+                        echo 'pcov.directory=/workspace/src/extensions/CreateWiki' >> /etc/php/8.1/cli/php.ini && \
+                        echo 'pcov.exclude=@(tests|vendor)@' >> /etc/php/8.1/cli/php.ini && \
+                        service mysql start && \
+                        sleep 5 && \
+                        php -m && php -v && \
+                        php -d extension=pcov.so -d pcov.enabled=1 -d pcov.directory=/workspace/src/extensions/CreateWiki -d 'pcov.exclude=@(tests|vendor)@' /workspace/src/tests/phpunit/phpunit.php --testsuite extensions --coverage-clover /workspace/log/clover.xml --coverage-html /workspace/cover --log-junit /workspace/log/junit.xml /workspace/src/extensions/CreateWiki"
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
