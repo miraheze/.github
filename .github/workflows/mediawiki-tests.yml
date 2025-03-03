@@ -207,7 +207,7 @@ jobs:
             --packages-source composer \
             -c "/bin/bash -c 'curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/mwext-phpunit-coverage.sh -o /usr/local/bin/mwext-phpunit-coverage && \
               curl -sL https://github.com/wikimedia/integration-config/raw/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/phpunit-suite-edit.py -o /usr/local/bin/phpunit-suite-edit && \
-              chmod +x /usr/local/bin/mwext-phpunit-coverage /usr/local/bin/phpunit-suite-edit && \
+              chmod 0777 /usr/local/bin/mwext-phpunit-coverage /usr/local/bin/phpunit-suite-edit && \
               mwext-phpunit-coverage'"
 
       - name: Upload coverage to Codecov
