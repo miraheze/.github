@@ -197,16 +197,17 @@ jobs:
           rm "$(pwd)"/src/LocalSettings.php || true
           # coverage
           docker run \
-            --entrypoint /bin/bash \
+            --entrypoint quibble-with-supervisord \
             -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
-            -e MW_INSTALL_PATH=/home/runner/src \
             -v "$(pwd)"/cache:/cache \
             -v "$(pwd)"/src:/workspace/src \
             -v "$(pwd)"/cover:/workspace/cover \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
-            -c "curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/mwext-phpunit-coverage.sh -o /tmp/mwext-phpunit-coverage && \
+            --skip-zuul \
+            --packages-source composer \
+            -c "/bin/bash -c 'curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/refs/heads/master/dockerfiles/quibble-buster-php74-coverage/mwext-phpunit-coverage.sh -o /tmp/mwext-phpunit-coverage && \
               chmod +x /tmp/mwext-phpunit-coverage && \
-              /bin/bash -e /tmp/mwext-phpunit-coverage"
+              /tmp/mwext-phpunit-coverage'"
 
       - name: Upload coverage to Codecov
         if: ${{ github.event_name == 'pull_request' && inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
