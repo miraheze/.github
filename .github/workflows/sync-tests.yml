@@ -13,9 +13,9 @@ jobs:
           - CreateWiki
           - DataDump
           - GlobalNewFiles
-          - JavascriptSlideshow
           - ImportDump
           - IncidentReporting
+          - JavascriptSlideshow
           - MachineTranslation
           - ManageWiki
           - MatomoAnalytics
