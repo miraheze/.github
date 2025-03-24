@@ -12,6 +12,7 @@ jobs:
         repository:
           - CreateWiki
           - DataDump
+          - DiscordNotifications
           - GlobalNewFiles
           - ImportDump
           - IncidentReporting
