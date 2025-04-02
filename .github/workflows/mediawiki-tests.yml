@@ -60,9 +60,7 @@ jobs:
           echo "PHAN_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}/tags/list" |
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
             grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
-          echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
-            python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
-            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
+          echo "QUIBBLE_DOCKER_LATEST_TAG=1.13.0" >> $GITHUB_ENV
 
           # Resolve dependencies
           if [ -e .github/workflows/dependencies ] || [ -e .github/workflows/phan_dependencies ]; then
@@ -94,12 +92,12 @@ jobs:
         uses: actions/cache@v4.2.2
         with:
           path: /home/runner/docker-images/${{ env.QUIBBLE_DOCKER_IMAGE }}
-          key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:1.13.0
+          key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:${{ env.QUIBBLE_DOCKER_LATEST_TAG }}
 
       - name: Load or pull quibble docker image
         run: |
           docker load -i /home/runner/docker-images/"${QUIBBLE_DOCKER_IMAGE}" || \
-            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:1.13.0"
+            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
 
       - name: Download MediaWiki and extensions
         run: |
