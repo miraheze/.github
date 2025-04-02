@@ -92,7 +92,7 @@ jobs:
         uses: actions/cache@v4.2.2
         with:
           path: /home/runner/docker-images/${{ env.QUIBBLE_DOCKER_IMAGE }}
-          key: ${{ env.QUIBBLE_DOCKER_IMAGE }}-temp:${{ env.QUIBBLE_DOCKER_LATEST_TAG }}
+          key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:${{ env.QUIBBLE_DOCKER_LATEST_TAG }}
 
       - name: Load or pull quibble docker image
         run: |
