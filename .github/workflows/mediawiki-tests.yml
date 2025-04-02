@@ -94,12 +94,12 @@ jobs:
         uses: actions/cache@v4.2.2
         with:
           path: /home/runner/docker-images/${{ env.QUIBBLE_DOCKER_IMAGE }}
-          key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:${{ env.QUIBBLE_DOCKER_LATEST_TAG }}
+          key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:1.13.0
 
       - name: Load or pull quibble docker image
         run: |
           docker load -i /home/runner/docker-images/"${QUIBBLE_DOCKER_IMAGE}" || \
-            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
+            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:1.13.0"
 
       - name: Download MediaWiki and extensions
         run: |
