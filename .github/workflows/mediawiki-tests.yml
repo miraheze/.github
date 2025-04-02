@@ -60,9 +60,7 @@ jobs:
           echo "PHAN_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}/tags/list" |
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
             grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
-          echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
-            python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
-            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
+          echo "QUIBBLE_DOCKER_LATEST_TAG=1.13.0" >> $GITHUB_ENV
 
           # Resolve dependencies
           if [ -e .github/workflows/dependencies ] || [ -e .github/workflows/phan_dependencies ]; then
