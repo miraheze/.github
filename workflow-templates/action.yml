@@ -2,13 +2,13 @@ name: Call reusable MediaWiki tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   call-mediawiki-tests-workflow:
-    uses: miraheze/.github/.github/workflows/mediawiki-tests.yml@master
+    uses: miraheze/.github/.github/workflows/mediawiki-tests.yml@main
     strategy:
       matrix:
         include:
