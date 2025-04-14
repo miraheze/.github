@@ -284,7 +284,6 @@ jobs:
           directory: /home/runner/cover
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
-          use_oidc: false
 
       - name: Run phpunit tests
         continue-on-error: ${{ inputs.experimental }}
