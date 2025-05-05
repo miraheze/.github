@@ -114,7 +114,7 @@ jobs:
                 repository=""
               fi
 
-              git clone --recurse-submodules -b "${branch:-${MEDIAWIKI_VERSION}}" --depth 1 "${repository:-https://gerrit.wikimedia.org/r/${dependency}}" src/"$(echo $dependency | cut -d'/' -f2,3)"
+              git clone --recurse-submodules -b "${branch:-${MEDIAWIKI_VERSION}}" --depth 1 "${repository:-https://github.com/wikimedia/$(echo "$dependency" | tr '/' '-')}" "src/$(echo "$dependency" | cut -d'/' -f2,3)"
             done
           fi
 
