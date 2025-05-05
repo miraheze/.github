@@ -103,8 +103,8 @@ jobs:
         run: |
           cd /home/runner
           if [ ! -d src ]; then
-            git clone -b "${MEDIAWIKI_VERSION}" --depth 1 https://gerrit.wikimedia.org/r/mediawiki/core src
-            git clone --recurse-submodules -b "${MEDIAWIKI_VERSION}" --depth 1 https://gerrit.wikimedia.org/r/mediawiki/skins/Vector src/skins/Vector
+            git clone -b "${MEDIAWIKI_VERSION}" --depth 1 https://github.com/wikimedia/mediawiki src
+            git clone --recurse-submodules -b "${MEDIAWIKI_VERSION}" --depth 1 https://github.com/wikimedia/mediawiki-skins-Vector src/skins/Vector
             for dep in $DEPENDENCIES $PHAN_DEPENDENCIES; do
               dependency=$(echo $dep | cut -d'|' -f1)
               repository=$(echo $dep | cut -sd'|' -f2)
