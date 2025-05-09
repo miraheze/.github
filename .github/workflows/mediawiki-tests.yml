@@ -16,6 +16,10 @@ on:
         default: false
         required: false
         type: boolean
+      experimental-phan:
+        default: false
+        required: false
+        type: boolean
       composer-test:
         default: false
         required: false
@@ -204,7 +208,7 @@ jobs:
             $DEPENDENCIES
 
       - name: Run phan tests
-        continue-on-error: ${{ inputs.experimental }}
+        continue-on-error: ${{ inputs.experimental || inputs.experimental-phan }}
         run: |
           cd /home/runner
           # phan
@@ -229,6 +233,7 @@ jobs:
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
             --skip-zuul \
             --packages-source composer \
+            --skip-install \
             --run "npm-test" \
             $DEPENDENCIES
 
@@ -247,6 +252,7 @@ jobs:
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
             --skip-zuul \
             --packages-source composer \
+            --skip-install \
             --run "composer-test" \
             $DEPENDENCIES
 
