@@ -208,7 +208,7 @@ jobs:
             $DEPENDENCIES
 
       - name: Run phan tests
-        continue-on-error: ${{ inputs.experimental == 'true' || inputs.experimental-phan == 'true' }}
+        continue-on-error: ${{ inputs.experimental-phan }}
         run: |
           cd /home/runner
           # phan
