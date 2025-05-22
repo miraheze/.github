@@ -12,11 +12,11 @@ on:
       php-docker:
         required: true
         type: number
-      experimental:
+      experimental-phan:
         default: false
         required: false
         type: boolean
-      experimental-phan:
+      experimental-phpunit:
         default: false
         required: false
         type: boolean
@@ -181,7 +181,6 @@ jobs:
           fi
 
       - name: Setup for Tests
-        continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
           # Move our extension
@@ -192,7 +191,6 @@ jobs:
           sudo chown $(id -u):$(id -g) src cache
 
       - name: Composer install (docker)
-        continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
           # Composer install
@@ -219,7 +217,6 @@ jobs:
             --color
 
       - name: Run npm-test
-        continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
@@ -238,7 +235,6 @@ jobs:
             $DEPENDENCIES
 
       - name: Run composer-test
-        continue-on-error: ${{ inputs.experimental }}
         run: |
           cd /home/runner
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
@@ -292,7 +288,7 @@ jobs:
           slug: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
       - name: Run phpunit tests
-        continue-on-error: ${{ inputs.experimental }}
+        continue-on-error: ${{ inputs.experimental-phpunit }}
         run: |
           cd /home/runner
           # Delete $PHAN_DEPENDENCIES if any exist
