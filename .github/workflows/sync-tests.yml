@@ -16,8 +16,6 @@ jobs:
           - GlobalNewFiles
           - ImportDump
           - IncidentReporting
-          - JavascriptSlideshow
-          - MachineTranslation
           - ManageWiki
           - MatomoAnalytics
           - MirahezeMagic
@@ -26,7 +24,6 @@ jobs:
           - RequestSSL
           - RottenLinks
           - WikiDiscover
-          - YouTube
 
     runs-on: ubuntu-latest
     steps:
