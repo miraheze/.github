@@ -84,7 +84,7 @@ jobs:
           fi
 
       - name: Cache phan docker image
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4.2.4
         with:
           path: /home/runner/docker-images/${{ env.PHAN_DOCKER_IMAGE }}
           key: ${{ env.PHAN_DOCKER_IMAGE }}:${{ env.PHAN_DOCKER_LATEST_TAG }}
@@ -95,7 +95,7 @@ jobs:
             docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
 
       - name: Cache quibble docker image
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4.2.4
         with:
           path: /home/runner/docker-images/${{ env.QUIBBLE_DOCKER_IMAGE }}
           key: ${{ env.QUIBBLE_DOCKER_IMAGE }}:${{ env.QUIBBLE_DOCKER_LATEST_TAG }}
@@ -139,7 +139,7 @@ jobs:
           git -C src/ log -n 1 --format="%H"
 
       - name: Cache dependencies (composer and npm)
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4.2.4
         with:
           path: /home/runner/cache
           key: ${{ runner.os }}-${{ env.MEDIAWIKI_VERSION }}-${{ hashFiles('**/*.lock') }}
