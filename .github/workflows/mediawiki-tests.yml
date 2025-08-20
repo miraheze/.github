@@ -283,7 +283,7 @@ jobs:
       - name: Upload coverage to Codecov
         if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
         continue-on-error: true
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@v5.5.0
         with:
           directory: /home/runner/cover
           token: ${{ secrets.CODECOV_TOKEN }}
