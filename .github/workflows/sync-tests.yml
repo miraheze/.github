@@ -33,7 +33,7 @@ jobs:
           echo "GITHUB_ACTOR=${GITHUB_ACTOR}" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Extract commit information
         id: extract_commit
