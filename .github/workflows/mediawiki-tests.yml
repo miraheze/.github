@@ -39,7 +39,6 @@ jobs:
       DOCKER_REGISTRY: docker-registry.wikimedia.org
       DOCKER_ORG: releng
       QUIBBLE_DOCKER_IMAGE: quibble-bullseye-php${{ inputs.php-docker }}
-      PHAN_DOCKER_IMAGE: mediawiki-phan-php${{ inputs.php-docker }}
       MEDIAWIKI_VERSION: ${{ inputs.mw }}
       COVERAGE_REPOS: '["CreateWiki"]'
 
@@ -61,9 +60,6 @@ jobs:
       - name: Set up
         run: |
           # Get the latest docker tag (Ref: https://github.com/thcipriani/dockerregistry)
-          echo "PHAN_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}/tags/list" |
-            python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
-            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
           echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
             grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
@@ -82,17 +78,6 @@ jobs:
               echo "PHAN_DEPENDENCIES=$(python3 rd.py phan_dependencies --no-recurse)" >> $GITHUB_ENV
             fi
           fi
-
-      - name: Cache phan docker image
-        uses: actions/cache@v5.0.1
-        with:
-          path: /home/runner/docker-images/${{ env.PHAN_DOCKER_IMAGE }}
-          key: ${{ env.PHAN_DOCKER_IMAGE }}:${{ env.PHAN_DOCKER_LATEST_TAG }}
-
-      - name: Load or pull phan docker image
-        run: |
-          docker load -i /home/runner/docker-images/"${PHAN_DOCKER_IMAGE}" || \
-            docker pull "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
 
       - name: Cache quibble docker image
         uses: actions/cache@v5.0.1
@@ -213,9 +198,10 @@ jobs:
           cd /home/runner
           # phan
           docker run \
+            --entrypoint /run-phan.sh \
             -e THING_SUBNAME=extensions/"${{ github.event.repository.name }}" \
             -v "$(pwd)"/src:/mediawiki \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}" \
+            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}" \
             --color
 
       - name: Run npm-test
@@ -323,7 +309,5 @@ jobs:
           rm "$(pwd)"/src/LocalSettings.php || true
           sudo rm -rf src/extensions/"${{ github.event.repository.name }}"
           mkdir -p docker-images
-          docker save -o "$(pwd)/docker-images/${PHAN_DOCKER_IMAGE}" \
-            "${DOCKER_REGISTRY}/${DOCKER_ORG}/${PHAN_DOCKER_IMAGE}:${PHAN_DOCKER_LATEST_TAG}"
           docker save -o "$(pwd)/docker-images/${QUIBBLE_DOCKER_IMAGE}" \
             "${DOCKER_REGISTRY}/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}:${QUIBBLE_DOCKER_LATEST_TAG}"
