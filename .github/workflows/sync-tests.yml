@@ -58,6 +58,8 @@ jobs:
           dst_owner: miraheze
           dst_repo_name: ${{ matrix.repository }}
           dst_branch: main
+          username: WikiTideBot
+          email: noreply@wikitide.org
           commit_message: |
             Update workflow: ${{ steps.extract_commit.outputs.short_message }}
 
@@ -65,4 +67,4 @@ jobs:
 
             from ${{ env.GITHUB_REPOSITORY }} (https://github.com/${{ env.GITHUB_REPOSITORY }}/commit/${{ env.GITHUB_SHA }})
 
-            ${{ env.GITHUB_ACTOR != 'Universal-Omega' && format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
+            ${{ format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
