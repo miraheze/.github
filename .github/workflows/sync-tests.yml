@@ -51,7 +51,7 @@ jobs:
       - name: Copy workflow
         uses: andstor/copycat-action@v3
         with:
-          personal_token: ${{ secrets.PERSONAL_TOKEN }}
+          personal_token: ${{ secrets.BOT_TOKEN }}
           src_path: workflow-templates/action.yml
           src_branch: main
           dst_path: .github/workflows/mediawiki-tests.yml
@@ -67,4 +67,4 @@ jobs:
 
             from ${{ env.GITHUB_REPOSITORY }} (https://github.com/${{ env.GITHUB_REPOSITORY }}/commit/${{ env.GITHUB_SHA }})
 
-            ${{ format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
+            Co-authored-by: ${{ env.GITHUB_ACTOR }}
