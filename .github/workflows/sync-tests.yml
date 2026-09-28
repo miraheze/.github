@@ -24,6 +24,7 @@ jobs:
           - RemovePII
           - RequestCustomDomain
           - RottenLinks
+          - ScheduledCacheExpiry
           - WikiDiscover
 
     runs-on: ubuntu-latest
