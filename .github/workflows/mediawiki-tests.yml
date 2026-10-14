@@ -38,7 +38,7 @@ jobs:
     env:
       DOCKER_REGISTRY: docker-registry.wikimedia.org
       DOCKER_ORG: releng
-      QUIBBLE_DOCKER_IMAGE: quibble-bullseye-php${{ inputs.php-docker }}
+      QUIBBLE_DOCKER_IMAGE: quibble-bookworm-php${{ inputs.php-docker }}
       MEDIAWIKI_VERSION: ${{ inputs.mw }}
       COVERAGE_REPOS: '["CreateWiki"]'
 
