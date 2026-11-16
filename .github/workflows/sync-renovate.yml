@@ -1,0 +1,67 @@
+name: Sync Renovate config
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - templates/renovate.json
+      - .github/workflows/sync-renovate.yml
+  workflow_dispatch:
+
+jobs:
+  copy:
+    strategy:
+      fail-fast: false
+      matrix:
+        repository:
+          - CreateWiki
+          - DataDump
+          - DiscordNotifications
+          - GlobalNewFiles
+          - ImportDump
+          - IncidentReporting
+          - ManageWiki
+          - MatomoAnalytics
+          - MirahezeRequests
+          - PDFEmbed
+          - RemovePII
+          - RequestCustomDomain
+          - RottenLinks
+          - ScheduledCacheExpiry
+          - WikiDiscover
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Extract commit information
+        id: extract_commit
+        run: |
+          echo "short_message=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
+          echo "long_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$(git log -1 --pretty=%b)" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Remove the checked-out repository to clean up
+      - name: Remove checked-out repository
+        run: rm -rf $GITHUB_WORKSPACE/.github
+
+      - name: Copy Renovate config
+        uses: andstor/copycat-action@v3
+        with:
+          personal_token: ${{ secrets.PERSONAL_TOKEN }}
+          src_path: templates/renovate.json
+          src_branch: main
+          dst_path: .github/renovate.json
+          dst_owner: miraheze
+          dst_repo_name: ${{ matrix.repository }}
+          dst_branch: main
+          commit_message: |
+            Update Renovate config: ${{ steps.extract_commit.outputs.short_message }}
+
+            ${{ steps.extract_commit.outputs.long_message }}
+
+            from ${{ github.repository }} (https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+
+            ${{ github.actor != 'Universal-Omega' && format('Co-authored-by: {0}', github.actor) || '' }}
