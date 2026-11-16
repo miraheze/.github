@@ -62,7 +62,7 @@ jobs:
           # Get the latest docker tag (Ref: https://github.com/thcipriani/dockerregistry)
           echo "QUIBBLE_DOCKER_LATEST_TAG=$(curl -sL "https://${DOCKER_REGISTRY}/v2/${DOCKER_ORG}/${QUIBBLE_DOCKER_IMAGE}/tags/list" |
             python3 -c 'import json;print("\n".join(json.loads(input())["tags"]))' |
-            grep -v latest | sort -Vr | head -1)" >> $GITHUB_ENV
+            grep -v latest | sort -Vr | head -1)" >> "$GITHUB_ENV"
 
           # Resolve dependencies
           if [ -e .github/workflows/dependencies ] || [ -e .github/workflows/phan_dependencies ]; then
@@ -72,10 +72,10 @@ jobs:
             curl -sL https://raw.githubusercontent.com/wikimedia/integration-config/master/zuul/parameter_functions.py -o pf.py
             curl -sL https://raw.githubusercontent.com/miraheze/ci-scripts/main/mediawiki/resolve_dependencies.py -o rd.py
             if [ -e dependencies ]; then
-              echo "DEPENDENCIES=$(python3 rd.py dependencies)" >> $GITHUB_ENV
+              echo "DEPENDENCIES=$(python3 rd.py dependencies)" >> "$GITHUB_ENV"
             fi
             if [ -e phan_dependencies ]; then
-              echo "PHAN_DEPENDENCIES=$(python3 rd.py phan_dependencies --no-recurse)" >> $GITHUB_ENV
+              echo "PHAN_DEPENDENCIES=$(python3 rd.py phan_dependencies --no-recurse)" >> "$GITHUB_ENV"
             fi
           fi
 
@@ -97,11 +97,11 @@ jobs:
             git clone -b "${MEDIAWIKI_VERSION}" --depth 1 https://github.com/wikimedia/mediawiki src
             git clone --recurse-submodules -b "${MEDIAWIKI_VERSION}" --depth 1 https://github.com/wikimedia/mediawiki-skins-Vector src/skins/Vector
             for dep in $DEPENDENCIES $PHAN_DEPENDENCIES; do
-              dependency=$(echo $dep | cut -d'|' -f1)
-              repository=$(echo $dep | cut -sd'|' -f2)
-              branch=$(echo $dep | rev | cut -sd'|' -f1 | rev)
+              dependency=$(echo "$dep" | cut -d'|' -f1)
+              repository=$(echo "$dep" | cut -sd'|' -f2)
+              branch=$(echo "$dep" | rev | cut -sd'|' -f1 | rev)
 
-              if [ $repository == $branch ]; then
+              if [ "$repository" = "$branch" ]; then
                 repository=""
               fi
 
@@ -157,11 +157,11 @@ jobs:
               git config --global user.name "github-actions"
               git config --global user.email "github-actions@users.noreply.github.com"
               git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-              git checkout -b ${GITHUB_HEAD_REF}
+              git checkout -b "${GITHUB_HEAD_REF}"
               git add .
               git commit -am "CI: lint code to MediaWiki standards" -m "Check commit and GitHub actions for more details"
-              git pull origin ${GITHUB_HEAD_REF} --rebase
-              git push --set-upstream origin ${GITHUB_HEAD_REF}
+              git pull origin "${GITHUB_HEAD_REF}" --rebase
+              git push --set-upstream origin "${GITHUB_HEAD_REF}"
             else
               echo "No changes to commit"
             fi
@@ -175,11 +175,12 @@ jobs:
           mkdir -p cache cover
           chmod 0777 src cache cover
           sudo chown -R nobody:nogroup src cache
-          sudo chown $(id -u):$(id -g) src cache
+          sudo chown "$(id -u):$(id -g)" src cache
 
       - name: Composer install (docker)
         run: |
           cd /home/runner
+          read -r -a deps <<< "$DEPENDENCIES"
           # Composer install
           docker run \
             -e ZUUL_PROJECT=mediawiki/extensions/"${{ github.event.repository.name }}" \
@@ -190,7 +191,7 @@ jobs:
             --packages-source composer \
             --skip-install \
             --skip all \
-            $DEPENDENCIES
+            "${deps[@]}"
 
       - name: Run phan tests
         continue-on-error: ${{ inputs.experimental-phan }}
@@ -207,6 +208,7 @@ jobs:
       - name: Run npm-test
         run: |
           cd /home/runner
+          read -r -a deps <<< "$DEPENDENCIES"
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
           # npm-test
@@ -220,11 +222,12 @@ jobs:
             --packages-source composer \
             --skip-install \
             --run "npm-test" \
-            $DEPENDENCIES
+            "${deps[@]}"
 
       - name: Run composer-test
         run: |
           cd /home/runner
+          read -r -a deps <<< "$DEPENDENCIES"
           # See https://doc.wikimedia.org/quibble/index.html#remove-localsettings-php-between-runs
           rm "$(pwd)"/src/LocalSettings.php || true
           # composer-test
@@ -238,7 +241,7 @@ jobs:
             --packages-source composer \
             --skip-install \
             --run "composer-test" \
-            $DEPENDENCIES
+            "${deps[@]}"
 
       - name: Run coverage
         if: ${{ inputs.coverage && contains(fromJson(env.COVERAGE_REPOS), github.event.repository.name) }}
@@ -278,12 +281,13 @@ jobs:
         continue-on-error: ${{ inputs.experimental-phpunit }}
         run: |
           cd /home/runner
+          read -r -a deps <<< "$DEPENDENCIES"
           # Delete $PHAN_DEPENDENCIES if any exist
           if [ -n "$PHAN_DEPENDENCIES" ]; then
             for dep in $PHAN_DEPENDENCIES; do
-              dependency=$(echo $dep | cut -d'|' -f1)
-              if [ -d "src/$(echo $dependency | cut -d'/' -f2,3)" ]; then
-                sudo rm -rf "src/$(echo $dependency | cut -d'/' -f2,3)"
+              dependency=$(echo "$dep" | cut -d'|' -f1)
+              if [ -d "src/$(echo "$dependency" | cut -d'/' -f2,3)" ]; then
+                sudo rm -rf "src/$(echo "$dependency" | cut -d'/' -f2,3)"
               fi
             done
           fi
@@ -299,7 +303,7 @@ jobs:
             --skip-zuul \
             --packages-source composer \
             --run "phpunit" \
-            $DEPENDENCIES
+            "${deps[@]}"
 
       - name: Tear down
         run: |

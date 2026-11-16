@@ -38,14 +38,16 @@ jobs:
       - name: Extract commit information
         id: extract_commit
         run: |
-          echo "short_message=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
-          echo "long_message<<EOF" >> $GITHUB_OUTPUT
-          echo "$(git log -1 --pretty=%b)" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "short_message=$(git log -1 --pretty=%s)"
+            echo "long_message<<EOF"
+            git log -1 --pretty=%b
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       # Remove the checked-out repository to clean up
       - name: Remove checked-out repository
-        run: rm -rf $GITHUB_WORKSPACE/.github
+        run: rm -rf "$GITHUB_WORKSPACE/.github"
 
       - name: Copy Renovate config
         uses: andstor/copycat-action@v3
