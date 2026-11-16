@@ -43,11 +43,21 @@ jobs:
           echo "$(git log -1 --pretty=%b)" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      # Remove the checked-out repository to clean up
+      - name: Remove checked-out repository
+        run: rm -rf $GITHUB_WORKSPACE/.github
+
       - name: Copy Renovate config
-        env:
-          TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-          REPOSITORY: ${{ matrix.repository }}
-          COMMIT_MESSAGE: |
+        uses: andstor/copycat-action@v3
+        with:
+          personal_token: ${{ secrets.PERSONAL_TOKEN }}
+          src_path: templates/renovate.json
+          src_branch: main
+          dst_path: .github/renovate.json
+          dst_owner: miraheze
+          dst_repo_name: ${{ matrix.repository }}
+          dst_branch: main
+          commit_message: |
             Update Renovate config: ${{ steps.extract_commit.outputs.short_message }}
 
             ${{ steps.extract_commit.outputs.long_message }}
@@ -55,18 +65,3 @@ jobs:
             from ${{ github.repository }} (https://github.com/${{ github.repository }}/commit/${{ github.sha }})
 
             ${{ github.actor != 'Universal-Omega' && format('Co-authored-by: {0}', github.actor) || '' }}
-        run: |
-          git clone --depth 1 --branch main "https://x-access-token:${TOKEN}@github.com/miraheze/${REPOSITORY}.git" "$RUNNER_TEMP/dst"
-          mkdir -p "$RUNNER_TEMP/dst/.github"
-          cp templates/renovate.json "$RUNNER_TEMP/dst/.github/renovate.json"
-          cd "$RUNNER_TEMP/dst"
-          git check-ignore -v .github/renovate.json || true
-          git add -f .github/renovate.json
-          if git diff --cached --quiet; then
-            echo "No changes: .github/renovate.json is already identical on main"
-          else
-            git config user.name "${GITHUB_ACTOR}"
-            git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-            git commit --message "$COMMIT_MESSAGE"
-            git push origin main
-          fi
