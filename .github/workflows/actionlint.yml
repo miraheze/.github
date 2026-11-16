@@ -1,0 +1,17 @@
+name: Lint workflows
+
+on:
+  push:
+    branches: [ main, 'renovate/**' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Run actionlint
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:latest -color .github/workflows/*.yml workflow-templates/*.yml
