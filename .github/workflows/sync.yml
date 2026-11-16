@@ -3,11 +3,14 @@ on:
     branches: [ main ]
     paths:
       - workflow-templates/action.yml
-      - .github/workflows/sync-tests.yml
+      - templates/renovate.json
+      - .github/workflows/sync.yml
+  workflow_dispatch:
 
 jobs:
   copy:
     strategy:
+      fail-fast: false
       matrix:
         repository:
           - CreateWiki
@@ -62,6 +65,29 @@ jobs:
           dst_branch: main
           commit_message: |
             Update workflow: ${{ steps.extract_commit.outputs.short_message }}
+
+            ${{ steps.extract_commit.outputs.long_message }}
+
+            from ${{ env.GITHUB_REPOSITORY }} (https://github.com/${{ env.GITHUB_REPOSITORY }}/commit/${{ env.GITHUB_SHA }})
+
+            ${{ env.GITHUB_ACTOR != 'Universal-Omega' && format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
+
+      # The action clones into the workspace, so clear what the first run left behind
+      - name: Clean up between copies
+        run: rm -rf $GITHUB_WORKSPACE/.github $GITHUB_WORKSPACE/dst_repo_dir
+
+      - name: Copy Renovate config
+        uses: andstor/copycat-action@v3
+        with:
+          personal_token: ${{ secrets.PERSONAL_TOKEN }}
+          src_path: templates/renovate.json
+          src_branch: main
+          dst_path: .github/renovate.json
+          dst_owner: miraheze
+          dst_repo_name: ${{ matrix.repository }}
+          dst_branch: main
+          commit_message: |
+            Update Renovate config: ${{ steps.extract_commit.outputs.short_message }}
 
             ${{ steps.extract_commit.outputs.long_message }}
 
