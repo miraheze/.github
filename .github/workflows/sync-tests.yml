@@ -1,13 +1,17 @@
+name: Sync tests workflow
+
 on:
   push:
     branches: [ main ]
     paths:
       - workflow-templates/action.yml
       - .github/workflows/sync-tests.yml
+  workflow_dispatch:
 
 jobs:
   copy:
     strategy:
+      fail-fast: false
       matrix:
         repository:
           - CreateWiki
@@ -29,13 +33,6 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          {
-            echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}"
-            echo "GITHUB_SHA=${GITHUB_SHA}"
-            echo "GITHUB_ACTOR=${GITHUB_ACTOR}"
-          } >> "$GITHUB_ENV"
-
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -68,6 +65,6 @@ jobs:
 
             ${{ steps.extract_commit.outputs.long_message }}
 
-            from ${{ env.GITHUB_REPOSITORY }} (https://github.com/${{ env.GITHUB_REPOSITORY }}/commit/${{ env.GITHUB_SHA }})
+            from ${{ github.repository }} (https://github.com/${{ github.repository }}/commit/${{ github.sha }})
 
-            ${{ env.GITHUB_ACTOR != 'Universal-Omega' && format('Co-authored-by: {0}', env.GITHUB_ACTOR) || '' }}
+            ${{ github.actor != 'Universal-Omega' && format('Co-authored-by: {0}', github.actor) || '' }}
